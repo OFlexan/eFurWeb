@@ -1,0 +1,295 @@
+{
+  "new": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "postContainer",
+        "reference": "container"
+      }
+    ],
+    "template": {
+      "post": [
+        {
+          "tagName": "div",
+          "className": "post",
+          "children": [
+            {
+              "tagName": "div",
+              "className": "postHead",
+              "children": [
+                {
+                  "tagName": "div",
+                  "children": [
+                    {
+                      "tagName": "img",
+                      "className": "profilePic",
+                      "src": ">[pfp_url]<"
+                    },
+                    {
+                      "tagName": "p",
+                      "className": "profileName",
+                      "innerText": ">[username]<"
+                    },
+                    {
+                      "tagName": "p",
+                      "className": "profileCats",
+                      "innerText": ">[categories]<"
+                    }
+                  ]
+                },
+                {
+                  "tagName": "div",
+                  "className": "profileRight",
+                  "children": [
+                    {
+                      "tagName": "p",
+                      "className": "postTime",
+                      "innerText": ">[upload_time]<"
+                    },
+                    {
+                      "tagName": "p",
+                      "className": "postMore androidIcon",
+                      "innerText": "keyboard_control"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tagName": "div",
+              "className": "postBody",
+              "reference": "body"
+            },
+            {
+              "tagName": "div",
+              "className": "postFoot",
+              "children": [
+                {
+                  "tagName": "div",
+                  "className": "postFavContainer",
+                  "reference": "favorite",
+                  "children": [
+                    {
+                      "tagName": "p",
+                      "className": "postFavorite androidIcon",
+                      "innerText": ">[favorite]<",
+                      "reference": "isfavorite"
+                    },
+                    {
+                      "tagName": "p",
+                      "className": "postFavoriteCount",
+                      "innerText": ">[favorite_count]<",
+                      "reference": "favorite_count"
+                    }
+                  ]
+                },
+                {
+                  "tagName": "div",
+                  "className": "postComContainer",
+                  "reference": "comments",
+                  "children": [
+                    {
+                      "tagName": "p",
+                      "className": "postComments androidIcon",
+                      "innerText": "comment"
+                    },
+                    {
+                      "tagName": "p",
+                      "className": "postCommentsCount",
+                      "innerText": ">[comments_count]<"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "imageBody": [
+        {
+          "tagName": "p",
+          "className": "imagePost postTitle",
+          "innerText": ">[post_title]<",
+          "equals": "post_title"
+        },
+        {
+          "tagName": "img",
+          "className": "postPic",
+          "src": ">[post_pic_url]<"
+        },
+        {
+          "tagName": "p",
+          "className": "postArtist",
+          "innerText": "© >[post_artist]<",
+          "equals": "post_artist"
+        },
+        {
+          "tagName": "p",
+          "className": "postDescLabel",
+          "innerText": "Description",
+          "equals": "post_desc"
+        },
+        {
+          "tagName": "p",
+          "className": "postDescription",
+          "innerText": ">[post_desc]<",
+          "equals": "post_desc"
+        }
+      ],
+      "storyBody": [
+        {
+          "tagName": "p",
+          "className": "storyPost postTitle",
+          "innerText": ">[post_title]<",
+          "equals": "post_title"
+        },
+        {
+          "tagName": "p",
+          "className": "postContent",
+          "innerText": ">[post_content]<",
+          "equals": "post_content"
+        },
+        {
+          "tagName": "p",
+          "className": "postArtist",
+          "innerText": "© >[post_artist]<",
+          "equals": "post_artist"
+        },
+        {
+          "tagName": "p",
+          "className": "postDescLabel",
+          "innerText": "Description",
+          "equals": "post_desc"
+        },
+        {
+          "tagName": "p",
+          "className": "postDescription",
+          "innerText": ">[post_desc]<",
+          "equals": "post_desc"
+        }
+      ],
+      "pollBody": [
+        {
+          "tagName": "div",
+          "className": "postPoll",
+          "children": [
+            {
+              "tagName": "p",
+              "className": "pollTitle",
+              "innerText": ">[poll_title]<"
+            },
+            {
+              "tagName": "div",
+              "className": "pollOptions",
+              "reference": "poll_options"
+            },
+            {
+              "tagName": "p",
+              "className": "poll_vote_count",
+              "innerText": ">[poll_count]< votes"
+            }
+          ]
+        },
+        {
+          "tagName": "p",
+          "className": "postArtist",
+          "innerText": "© >[post_artist]<",
+          "equals": "post_artist"
+        },
+        {
+          "tagName": "p",
+          "className": "postDescLabel",
+          "innerText": "Description",
+          "equals": "post_desc"
+        },
+        {
+          "tagName": "p",
+          "className": "postDescription",
+          "innerText": ">[post_desc]<",
+          "equals": "post_desc"
+        }
+      ]
+    }
+  },
+  "post": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "previewContainer",
+        "reference": "container"
+      }
+    ],
+    "template": {
+      "comment": [
+        {
+          "tagName": "div",
+          "className": "comment",
+          "children": [
+            {
+              "tagName": "div",
+              "className": "commentHead",
+              "children": [
+                {
+                  "tagName": "img",
+                  "className": "profilePic",
+                  "src": ">[pfp_url]<"
+                },
+                {
+                  "tagName": "p",
+                  "className": "profileName",
+                  "innerText": ">[username]<"
+                },
+                {
+                  "tagName": "p",
+                  "className": "commentSplitter",
+                  "innerText": "~"
+                },
+                {
+                  "tagName": "p",
+                  "className": "commentTime",
+                  "innerText": ">[upload_time]<"
+                }
+              ]
+            },
+            {
+              "tagName": "div",
+              "className": "commentBody",
+              "children": [
+                {
+                  "tagName": "p",
+                  "className": "commentText",
+                  "innerText": ">[content]<"
+                }
+              ]
+            },
+            {
+              "tagName": "div",
+              "className": "commentFoot",
+              "children": [
+                {
+                  "tagName": "p",
+                  "className": "commentLike androidIcon",
+                  "innerText": ">[like]<"
+                },
+                {
+                  "tagName": "p",
+                  "className": "commentLikeCount",
+                  "innerText": ">[like_count]<"
+                },
+                {
+                  "tagName": "p",
+                  "className": "commentReplies",
+                  "innerText": ">[replies]< REPLIES",
+                  "equals": "replies"
+                }
+              ]
+            },
+            {
+              "tagName": "br"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

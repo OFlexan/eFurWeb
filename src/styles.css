@@ -1,0 +1,251 @@
+/* android icons */
+@font-face {
+  font-family: icons;
+  src: url("./res/gicons.ttf");
+}
+
+@font-face {
+  font-family: iconsfill;
+  src: url("./res/giconsfill.ttf");
+}
+
+.androidIcon {
+  font-family: icons;
+}
+
+.androidIconFill {
+  font-family: iconsfill;
+}
+
+/* page css */
+body, html {
+  color: white;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-size: 18px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: rgb(19, 23, 27);
+}
+/* center and limited size */
+.postContainer, .previewContainer {
+  width: 700px;
+  height: 100%;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.post {
+  margin: 8px 0;
+  background-color: rgb(23, 27, 32);
+  border: 1px solid rgb(31, 36, 43);
+  border-radius: 12px;
+}
+
+/*
+  post head
+*/
+.postHead {
+  width: calc(100% - 16px);
+  padding: 8px;
+  user-select: none;
+  column-count: 2;
+}
+
+.postHead .profilePic {
+  width: 50px;
+  height: 50px;
+  float: left;
+  margin-right: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.postHead .profileName {
+  font-size: 26px;
+  margin: 0;
+  line-height: 30px;
+  cursor: pointer;
+}
+
+.postHead .profileCats {
+  font-size: 16px;
+  margin: 0;
+  line-height: 20px;
+  color: rgb(168, 168, 168);
+  cursor: pointer;
+}
+
+.postHead .profileRight {
+  text-align: right;
+}
+
+.postHead .postTime {
+  display: inline-block;
+  margin: 0;
+  margin-right: 4px;
+  line-height: 50px;
+  color: rgb(168, 168, 168);
+}
+
+.postHead .postMore {
+  display: inline-block;
+  margin: 0;
+  color: rgb(168, 168, 168);
+  line-height: 50px;
+  cursor: pointer;
+}
+
+/*
+  post body
+*/
+.postBody {
+  padding: 8px;
+}
+
+.postBody .imagePost.postTitle {
+  text-align: center;
+  margin: 2px;
+}
+
+.postPic {
+  width: calc(100% + 16px);
+  transform: translateX(-8px);
+}
+
+.postArtist {
+  font-size: 16px;
+  margin: 0;
+  color: rgb(168, 168, 168);
+}
+
+.postDescLabel {
+  font-size: 16px;
+  margin: 0;
+  color: rgb(104, 104, 104);
+}
+
+.postDescription {
+  margin: 0;
+  color: rgb(168, 168, 168);
+}
+
+/*
+  post foot
+*/
+.postFoot {
+  padding: 0 8px;
+  width: calc(100% - 16px);
+  user-select: none;
+}
+
+.postFoot .postFavContainer, .postFoot .postComContainer {
+  padding-right: 10%;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.postFoot .postFavContainer .postFavorite {
+  color: red;
+}
+
+.postFoot .postFavContainer .postFavorite, .postFoot .postFavContainer .postFavoriteCount, .postFoot .postComContainer .postComments, .postFoot .postComContainer .postCommentsCount {
+  margin: 0;
+  font-size: 28px;
+  line-height: 28px;
+  float: left;
+  margin: 0 4px;
+}
+
+.postFoot .postFavContainer .postFavoriteCount, .postFoot .postComContainer .postCommentsCount {
+  font-size: 20px;
+}
+
+/* comment */
+.comment {
+  margin: 8px 0;
+  border: 1px solid rgb(31, 36, 43);
+  border-radius: 8px;
+}
+/*
+  comment head
+*/
+.commentHead {
+  display: inline-block;
+  padding: 8px;
+  user-select: none;
+}
+
+.commentHead .profilePic {
+  width: 40px;
+  height: 40px;
+  float: left;
+  margin-right: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.commentHead .profileName {
+  float: left;
+  margin: 0;
+  line-height: 40px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.commentHead .commentSplitter {
+  float: left;
+  margin: 0 10px;
+  color: rgb(207, 207, 207);
+  line-height: 40px;
+  cursor: pointer;
+}
+
+.commentHead .commentTime {
+  margin: 0;
+  float: left;
+  line-height: 40px;
+  color: rgb(168, 168, 168);
+  cursor: pointer;
+}
+
+/*
+  comment body
+*/
+.commentBody {
+  padding: 0 16px;
+}
+
+.commentBody .commentText {
+  clear: both;
+  margin: 0;
+}
+
+/*
+  comment foot
+*/
+.commentFoot {
+  display: inline-block;
+  padding: 8px;
+  user-select: none;
+}
+
+.commentFoot .commentLike {
+  margin: 0;
+  float: left;
+  line-height: 40px;
+}
+
+.commentFoot .commentLikeCount {
+  margin: 0;
+  float: left;
+  line-height: 40px;
+}
+
+.commentFoot .commentReplies {
+  margin: 0;
+  float: right;
+  color: rgb(0, 119, 255);
+  font-weight: 600;
+}
