@@ -6,7 +6,8 @@ window.onload = function() {
   document.querySelector("button").onclick = async function() {
     document.querySelector("button").disabled = true;
     await Parse.User.logIn(document.querySelector("input[type=email]").value, document.querySelector("input[type=password]").value).then(() => {
-      location.href = "./index.html";
+      var r = Object.fromEntries(new URLSearchParams(location.search))["redirect"];
+      location.href = "./index.html" + (r ? "#" + r : "");
     }).catch((e) => {
       document.querySelector(".error").innerText = e.message;
       document.querySelector("input[type=password]").value = "";

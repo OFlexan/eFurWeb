@@ -10,6 +10,7 @@ body {
   top: 0;
   left: 0;
   object-fit: cover;
+  margin: 0;
 }
 
 .cover {

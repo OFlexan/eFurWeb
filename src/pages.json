@@ -99,6 +99,11 @@
                       "innerText": ">[comments_count]<"
                     }
                   ]
+                },
+                {
+                  "tagName": "p",
+                  "className": "postShare androidIcon",
+                  "innerText": "share"
                 }
               ]
             }
@@ -113,9 +118,15 @@
           "equals": "post_title"
         },
         {
-          "tagName": "img",
-          "className": "postPic",
-          "src": ">[post_pic_url]<"
+          "tagName": "div",
+          "className": "postPicContainer",
+          "children": [
+            {
+              "tagName": "img",
+              "className": "postPic",
+              "src": ">[post_pic_url]<"
+            }
+          ]
         },
         {
           "tagName": "p",
@@ -217,6 +228,24 @@
         "tagName": "div",
         "className": "previewContainer",
         "reference": "container"
+      },
+      {
+        "tagName": "div",
+        "className": "htmlHeader",
+        "equals": "username",
+        "children": [
+          {
+            "tagName": "p",
+            "className": "htmlBack androidIcon",
+            "reference": "html_back",
+            "innerText": "arrow_back"
+          },
+          {
+            "tagName": "p",
+            "className": "htmlText",
+            "innerText": ">[username]<'s post"
+          }
+        ]
       }
     ],
     "template": {
@@ -257,6 +286,12 @@
               "children": [
                 {
                   "tagName": "p",
+                  "className": "commentMention",
+                  "innerText": "@>[mention]<",
+                  "equals": "mention"
+                },
+                {
+                  "tagName": "p",
                   "className": "commentText",
                   "innerText": ">[content]<"
                 }
@@ -278,14 +313,32 @@
                 },
                 {
                   "tagName": "p",
-                  "className": "commentReplies",
-                  "innerText": ">[replies]< REPLIES",
-                  "equals": "replies"
+                  "className": "commentShare androidIcon",
+                  "innerText": "share"
+                },
+                {
+                  "tagName": "p",
+                  "className": "commentFlag androidIcon",
+                  "innerText": "flag"
                 }
               ]
             },
             {
               "tagName": "br"
+            }
+          ]
+        },
+        {
+          "tagName": "div",
+          "className": "commentRepliesContainer",
+          "reference": "comment_replies_container",
+          "equals": "replies",
+          "children": [
+            {
+              "tagName": "p",
+              "className": "commentReplies",
+              "reference": "comment_replies",
+              "innerText": "Click to see >[replies]< replies"
             }
           ]
         }

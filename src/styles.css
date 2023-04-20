@@ -1,4 +1,6 @@
-/* android icons */
+/*
+  android icons
+*/
 @font-face {
   font-family: icons;
   src: url("./res/gicons.ttf");
@@ -17,7 +19,9 @@
   font-family: iconsfill;
 }
 
-/* page css */
+/*
+  page css
+*/
 body, html {
   color: white;
   margin: 0;
@@ -29,7 +33,7 @@ body, html {
 }
 /* center and limited size */
 .postContainer, .previewContainer {
-  width: 700px;
+  width: 600px;
   height: 100%;
   position: absolute;
   left: 50%;
@@ -41,6 +45,84 @@ body, html {
   background-color: rgb(23, 27, 32);
   border: 1px solid rgb(31, 36, 43);
   border-radius: 12px;
+}
+/* error */
+.error, .fadingError {
+  width: 100%;
+  max-width: 800px;
+  background-color: rgb(255, 0, 0);
+  color: white;
+  margin: 0;
+  padding: 12px;
+  position: fixed;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+}
+
+.error {
+  animation: fadeIn 150ms;
+}
+
+.fadingError {
+  animation: fadeOut 150ms;
+  animation-fill-mode: forwards;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9);
+  }
+}
+
+/*
+  html header
+*/
+.htmlHeader {
+  background-color: rgb(42, 48, 54);
+  padding: 20px;
+  display: inline-block;
+  width: calc(100% - 40px);
+  user-select: none;
+  position: fixed;
+}
+
+.htmlBack {
+  font-size: 28px;
+  margin: 0;
+  margin-left: calc(50% - 396px); /* 300px is half of the postContainer width + 20px for good padding + 28px of this width + 8px of post margin */
+  float: left;
+  line-height: 28px;
+  cursor: pointer;
+}
+
+.htmlText {
+  font-size: 28px;
+  margin: 0;
+  margin-left: 68px;
+  float: left;
+  line-height: 28px;
+}
+
+.htmlHasHeader {
+  margin-top: 68px;
 }
 
 /*
@@ -59,6 +141,7 @@ body, html {
   float: left;
   margin-right: 8px;
   border-radius: 12px;
+  object-fit: cover;
   cursor: pointer;
 }
 
@@ -108,12 +191,23 @@ body, html {
   text-align: center;
   margin: 2px;
 }
-
-.postPic {
+/* add black bars to pic */
+.postPicContainer {
+  float: none;
+  padding: 0;
+  background: black;
+  display: table;
   width: calc(100% + 16px);
   transform: translateX(-8px);
 }
 
+.postPicContainer .postPic {
+  display: block;
+  max-height: 70vh;
+  max-width: 100%;
+  margin: auto;
+}
+/* end of ^ */
 .postArtist {
   font-size: 16px;
   margin: 0;
@@ -162,6 +256,16 @@ body, html {
   font-size: 20px;
 }
 
+.postFoot .postShare {
+  margin: 0;
+  display: inline-block;
+  padding-right: 10%;
+  font-size: 28px;
+  line-height: 28px;
+  cursor: pointer;
+  color: rgb(0, 162, 255);
+}
+
 /* comment */
 .comment {
   margin: 8px 0;
@@ -199,7 +303,6 @@ body, html {
   margin: 0 10px;
   color: rgb(207, 207, 207);
   line-height: 40px;
-  cursor: pointer;
 }
 
 .commentHead .commentTime {
@@ -207,7 +310,6 @@ body, html {
   float: left;
   line-height: 40px;
   color: rgb(168, 168, 168);
-  cursor: pointer;
 }
 
 /*
@@ -217,9 +319,19 @@ body, html {
   padding: 0 16px;
 }
 
-.commentBody .commentText {
-  clear: both;
+.commentBody .commentMention {
+  background-color: rgba(0, 132, 255, 0.25);
+  width: fit-content;
+  padding: 2px 5px;
   margin: 0;
+  margin-right: 4px;
+  border-radius: 4px;
+  float: left;
+}
+
+.commentBody .commentText {
+  margin: 0;
+  line-height: 28px;
 }
 
 /*
@@ -227,25 +339,57 @@ body, html {
 */
 .commentFoot {
   display: inline-block;
-  padding: 8px;
+  padding: 16px;
   user-select: none;
 }
 
 .commentFoot .commentLike {
   margin: 0;
+  margin-right: 8px;
   float: left;
-  line-height: 40px;
+  font-size: 24px;
+  cursor: pointer;
+  color: rgb(255, 166, 0);
 }
 
 .commentFoot .commentLikeCount {
   margin: 0;
   float: left;
-  line-height: 40px;
+  line-height: 24px;
 }
 
-.commentFoot .commentReplies {
+.commentFoot .commentShare {
   margin: 0;
-  float: right;
-  color: rgb(0, 119, 255);
-  font-weight: 600;
+  margin-left: 48px;
+  float: left;
+  font-size: 24px;
+  cursor: pointer;
+  color: rgb(0, 162, 255);
+}
+
+.commentFoot .commentFlag {
+  margin: 0;
+  margin-left: 48px;
+  float: left;
+  font-size: 24px;
+  cursor: pointer;
+  color: rgb(255, 0, 0);
+}
+
+/*
+  comment replies
+*/
+.commentRepliesContainer {
+  margin-left: 1px;
+  padding-left: 15px;
+  border-left: 4px solid rgb(40, 48, 56);
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.commentReplies {
+  margin: 0;
+  color: rgb(0, 162, 255);
+  user-select: none;
+  cursor: pointer;
 }

@@ -59,10 +59,11 @@ var parse = {
         p: postId
       }).catch(error);
     },
-    getComments: async function(postId, timestamp, error) {
+    getComments: async function(postId, sub, timestamp, error) {
       return await this.run("getComments", {
         d: timestamp,
-        p: postId
+        p: postId,
+        c: sub
       }).catch(error);
     },
     run: async function(name, request) {
@@ -223,6 +224,7 @@ var parse = {
         replies: obj.get("q"),
         content: obj.get("t"),
         user: this.user(obj.get("u")),
+        reply: this.comment(obj.get("r")),
         createdAt: obj.createdAt,
         updatedAt: obj.updatedAt
       }
@@ -377,18 +379,31 @@ function formatTime(date, type) {
 // searches in array by property, for example get the item in arr = [{t:0},{t:1},{t:2}] that has sub = "t" and equ = 1 (should return {t:1})
 function searchInArray(arr, sub, equ) {
   for (var i = 0; i < arr.length; i++) {
-    if (arr[sub] == equ) return arr[sub];
+    if (arr[i][sub] == equ) return arr[i];
   }
   return undefined;
 }
 
 function alertError(msg) {
-  alert(msg);
+  var err = document.createElement("p");
+  err.className = "error";
+  err.innerText = msg;
+  document.body.appendChild(err);
+  setTimeout(() => {
+    if (document.body.contains(err)) {
+      err.className = "fadingError";
+      setTimeout(() => {
+        if (document.body.contains(err)) document.body.removeChild(err);
+      }, 150);
+    }
+  }, 10000);
 }
 
-function createPost(posts) {
-  for (var i = 0; i < posts.f.length; i++) config.cache.posts.f.push(posts.f[i]);
-  for (var i = 0; i < posts.p.length; i++) config.cache.posts.p.push(posts.p[i]);
+function createPost(posts, preventCache) {
+  if (!preventCache) {
+    for (var i = 0; i < posts.f.length; i++) config.cache.posts.f.push(posts.f[i]);
+    for (var i = 0; i < posts.p.length; i++) config.cache.posts.p.push(posts.p[i]);
+  }
   var f = [];
   for (var i = 0; i < posts.p.length; i++) {
     var post = posts.p[i];
@@ -441,11 +456,61 @@ function createPost(posts) {
     })(post.id);
     // cache post
     f.push(postElem);
-    config.cache.postHtml[post.id] = postElem;
-    config.lastTime.post = +post.createdAt;
+    if (!preventCache) {
+      config.cache.postHtml[post.id] = postElem;
+      config.lastTime.post = +post.createdAt;
+    }
   }
   return f;
 };
+
+async function createComments(aff, sub, d) {
+  var comments = await parse.cloud.getComments(aff, sub, (e) => alertError(e.message));
+  comments.c = parse.parse.array(comments.c, "comment");
+  for (var i = comments.c.length - 1; i >= 0; i--) { // or for original state: for (var i = 0; i < comments.c.length; i++) {
+    var comment = comments.c[i];
+    // create comment
+    var commentElem = pageRenderer.compile("post", "comment", {
+      pfp_url: comment.user.icon ? comment.user.icon.preview : "./res/default_icon.png",
+      username: comment.user.username,
+      upload_time: formatTime(comment.createdAt, 1),
+      content: comment.content,
+      like: comments.f.includes(comment.id) ? "thumb_up_alt" : "thumb_up_off_alt",
+      like_count: comment.likes ?? 0,
+      replies: !sub && comment.replies > 0 ? comment.replies : undefined,
+      mention: sub && comment.reply ? comment.reply.user.username : undefined
+    });
+    /*
+    // favorite functionality
+    var fav = postElem.get("isfavorite");
+    postElem.get("favorite").onclick = ((count, fav, id) => async () => {
+      var a = fav.innerText != "favorite";
+      fav.innerText = a ? "favorite" : "favorite_border";
+      count.innerText = a ? +count.innerText + 1 : +count.innerText - 1;
+      var c = await parse.cloud.favPost(a, id, (e) => {
+        alertError(e.message);
+      });
+      if (c == undefined) return;
+      fav.innerText = c.g ? "favorite" : "favorite_border";
+      count.innerText = c.f;
+    })(postElem.get("favorite_count"), fav, post.id);
+    // get replies functionality
+    postElem.get("comments").onclick = ((id) => async () => {
+      location.hash = "post@" + id;
+    })(post.id);
+    */
+    // add replies functionality
+    var r = commentElem.get("comment_replies");
+    if (r) r.onclick = ((dom, sub, r, s) => async () => {
+      s.onclick = undefined;
+      s.innerText = "Loading...";
+      await createComments(dom, sub, r);
+      s.parentNode.removeChild(s);
+    })(aff, comment.id, commentElem.get("comment_replies_container"), r);
+    // add comment
+    commentElem.appendTo(d);
+  }
+}
 
 var config = {
   rating: 0,
@@ -458,13 +523,17 @@ var config = {
   }
 };
 
-async function initPage(page) {
+async function initPage(page, fromHash) {
   console.log("[eFur] Switched to page '" + page + "'");
   document.body.innerHTML = "";
   document.body.scrollTo();
   var useCache = false;
   if (page.endsWith("~")) {
     page = page.substring(0, page.length - 1);
+    if (!fromHash) {
+      location.hash = page;
+      return;
+    }
     useCache = true;
   }
   var aff;
@@ -474,16 +543,14 @@ async function initPage(page) {
   }
   // reset events
   window.onscroll = undefined;
-  // create page
-  var p = pageRenderer.render(page, {});
-  p.head.appendTo(document.head);
-  p.body.appendTo(document.body);
   
   // page: new
   if (page == "new") {
-    config.cache.posts = {};
-    var posts;
+    // create page
+    var p = pageRenderer.render(page, {});
+    p.body.appendTo(document.body);
     // get posts
+    var posts;
     if (useCache) {
       posts = config.cache.posts;
     } else {
@@ -494,7 +561,7 @@ async function initPage(page) {
       posts.p = parse.parse.array(posts.p, "post");
     }
     // append posts
-    createPost(posts).forEach((e) => e.appendTo(p.body.get("container")));
+    createPost(posts, useCache).forEach((e) => e.appendTo(p.body.get("container")));
     var wait = false;
     window.onscroll = async () => {
       if (wait) return;
@@ -517,49 +584,26 @@ async function initPage(page) {
     if (post == undefined) {
       var posts = await parse.cloud.getSinglePost(aff, config.rating, (e) => alertError(e.message));
       posts.p = parse.parse.array(posts.p, "post");
-      post = createPost(posts)[0];
+      post = createPost(posts, true)[0];
     }
+    // create page and append post
+    var p = pageRenderer.render(page, {
+      username: fromHash ? searchInArray(config.cache.posts.p, "id", aff).user.username : undefined
+    });
+    p.body.appendTo(document.body);
     post.appendTo(p.body.get("container"));
-    // get comments
-    var comments = await parse.cloud.getComments(aff, undefined, (e) => alertError(e.message));
-    comments.c = parse.parse.array(comments.c, "comment");
-    for (var i = 0; i < comments.c.length; i++) {
-      var comment = comments.c[i];
-      // create comment
-      var commentElem = pageRenderer.compile(page, "comment", {
-        pfp_url: comment.user.icon ? comment.user.icon.preview : "./res/default_icon.png",
-        username: comment.user.username,
-        upload_time: formatTime(comment.createdAt, 1),
-        content: comment.content,
-        like: comments.f.includes(comment.id) ? "thumb_up_alt" : "thumb_up_off_alt",
-        like_count: comment.likes ?? 0,
-        replies: comment.replies > 0 ? comment.replies : undefined
-      });
-      /*
-      // favorite functionality
-      var fav = postElem.get("isfavorite");
-      postElem.get("favorite").onclick = ((count, fav, id) => async () => {
-        var a = fav.innerText != "favorite";
-        fav.innerText = a ? "favorite" : "favorite_border";
-        count.innerText = a ? +count.innerText + 1 : +count.innerText - 1;
-        var c = await parse.cloud.favPost(a, id, (e) => {
-          alertError(e.message);
-        });
-        if (c == undefined) return;
-        fav.innerText = c.g ? "favorite" : "favorite_border";
-        count.innerText = c.f;
-      })(postElem.get("favorite_count"), fav, post.id);
-      // get replies functionality
-      postElem.get("comments").onclick = ((id) => async () => {
-        location.hash = "post@" + id;
-      })(post.id);
-      */
-      // add comment
-      commentElem.appendTo(p.body.get("container"));
+    if (fromHash) {
+      // setup header
+      p.body.get("container").classList.add("htmlHasHeader");
+      p.body.get("html_back").onclick = function() {
+        location.hash = "new~";
+      };
     }
+    // get comments
+    await createComments(aff, undefined, p.body.get("container"));
     return;
   }
-  location.hash = "#new";
+  location.hash = "new";
 }
 
 // run first time
@@ -574,11 +618,11 @@ var pages;
 
   // check if user is logged in
   if (Parse.User.current() == null) {
-    location.href = "./login.html";
+    location.href = "./login.html" + (location.hash != "" ? "?redirect=" + location.hash.substring(1) : "");
     return;
   }
 
   // make the hash control the page
-  window.onhashchange = () => initPage(location.hash != "" ? location.hash.substring(1) : "new");
+  window.onhashchange = () => initPage(location.hash != "" ? location.hash.substring(1) : "new", true);
   initPage(location.hash != "" ? location.hash.substring(1) : "new");
 })();
