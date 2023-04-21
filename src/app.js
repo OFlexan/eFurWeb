@@ -5,7 +5,7 @@ var parse = {
     Parse.serverURL = "https://api.efur.app/parse";
   },
   cloud: {
-    version: 100,
+    version: 101,
     registerUser: async function(allowedNsfw, email, password, username, error) {
       return await this.run("registerUser", {
         a: allowedNsfw ? 1 : 0,
@@ -64,6 +64,12 @@ var parse = {
         d: timestamp,
         p: postId,
         c: sub
+      }).catch(error);
+    },
+    favComment: async function(favOrUnfav, commentId, error) {
+      return await this.run("favComment", {
+        a: favOrUnfav,
+        c: commentId
       }).catch(error);
     },
     run: async function(name, request) {
@@ -384,6 +390,21 @@ function searchInArray(arr, sub, equ) {
   return undefined;
 }
 
+function alert(msg) {
+  var err = document.createElement("p");
+  err.className = "alert";
+  err.innerText = msg;
+  document.body.appendChild(err);
+  setTimeout(() => {
+    if (document.body.contains(err)) {
+      err.className = "fadingAlert";
+      setTimeout(() => {
+        if (document.body.contains(err)) document.body.removeChild(err);
+      }, 150);
+    }
+  }, 5000);
+}
+
 function alertError(msg) {
   var err = document.createElement("p");
   err.className = "error";
@@ -396,7 +417,7 @@ function alertError(msg) {
         if (document.body.contains(err)) document.body.removeChild(err);
       }, 150);
     }
-  }, 10000);
+  }, 5000);
 }
 
 function createPost(posts, preventCache) {
@@ -454,6 +475,14 @@ function createPost(posts, preventCache) {
     postElem.get("comments").onclick = ((id) => async () => {
       location.hash = "post@" + id;
     })(post.id);
+    // share/report functionality
+    var l = location.href;
+    if (l.includes("#")) l = l.substring(0, l.indexOf("#"));
+    postElem.get("share").onclick = ((id) => async () => {
+      await navigator.clipboard.writeText(l + "#post@" + id);
+      alert("Copied link to clipboard!");
+    })(post.id);
+    postElem.get("report").onclick = ((id) => () => window.open("./report.html?type=post&id=" + id, "_blank"))(post.id);
     // cache post
     f.push(postElem);
     if (!preventCache) {
@@ -475,31 +504,31 @@ async function createComments(aff, sub, d) {
       username: comment.user.username,
       upload_time: formatTime(comment.createdAt, 1),
       content: comment.content,
-      like: comments.f.includes(comment.id) ? "thumb_up_alt" : "thumb_up_off_alt",
+      like: comments.f.includes(comment.id) ? "Fill" : "",
       like_count: comment.likes ?? 0,
       replies: !sub && comment.replies > 0 ? comment.replies : undefined,
       mention: sub && comment.reply ? comment.reply.user.username : undefined
     });
-    /*
-    // favorite functionality
-    var fav = postElem.get("isfavorite");
-    postElem.get("favorite").onclick = ((count, fav, id) => async () => {
-      var a = fav.innerText != "favorite";
-      fav.innerText = a ? "favorite" : "favorite_border";
-      count.innerText = a ? +count.innerText + 1 : +count.innerText - 1;
-      var c = await parse.cloud.favPost(a, id, (e) => {
+    // like functionality
+    var like = commentElem.get("like");
+    like.onclick = ((like, count, id) => async () => {
+      var a = !like.classList.contains("androidIconFill");
+      if (a) {
+        like.className = "commentLike androidIconFill";
+        count.innerText = +count.innerText + 1;
+      } else {
+        like.className = "commentLike androidIcon";
+        count.innerText = +count.innerText - 1;
+      }
+      var c = await parse.cloud.favComment(a, id, (e) => {
         alertError(e.message);
       });
       if (c == undefined) return;
-      fav.innerText = c.g ? "favorite" : "favorite_border";
-      count.innerText = c.f;
-    })(postElem.get("favorite_count"), fav, post.id);
-    // get replies functionality
-    postElem.get("comments").onclick = ((id) => async () => {
-      location.hash = "post@" + id;
-    })(post.id);
-    */
-    // add replies functionality
+      if (c.g) like.className = "commentLike androidIconFill";
+      else like.className = "commentLike androidIcon";
+      count.innerText = c.s;
+    })(like, commentElem.get("like_count"), comment.id);
+    // replies functionality
     var r = commentElem.get("comment_replies");
     if (r) r.onclick = ((dom, sub, r, s) => async () => {
       s.onclick = undefined;
@@ -507,6 +536,14 @@ async function createComments(aff, sub, d) {
       await createComments(dom, sub, r);
       s.parentNode.removeChild(s);
     })(aff, comment.id, commentElem.get("comment_replies_container"), r);
+    // share/report functionality
+    var l = location.href;
+    if (l.includes("#")) l = l.substring(0, l.indexOf("#"));
+    commentElem.get("share").onclick = ((id) => async () => {
+      await navigator.clipboard.writeText(l + "#comment@" + id);
+      alert("Copied link to clipboard!");
+    })(comment.id);
+    commentElem.get("report").onclick = ((id) => () => window.open("./report.html?type=comment&id=" + id, "_blank"))(comment.id);
     // add comment
     commentElem.appendTo(d);
   }
@@ -520,11 +557,13 @@ var config = {
   cache: {
     posts: {f:[],p:[]},
     postHtml: {}
-  }
+  },
+  pageScrollPos: 0
 };
 
 async function initPage(page, fromHash) {
   console.log("[eFur] Switched to page '" + page + "'");
+  var scroll = document.documentElement.scrollTop;
   document.body.innerHTML = "";
   document.body.scrollTo();
   var useCache = false;
@@ -575,10 +614,12 @@ async function initPage(page, fromHash) {
         wait = false;
       }
     };
+    document.documentElement.scrollTop = config.pageScrollPos;
     return;
   }
   // page: post
   if (page == "post") {
+    config.pageScrollPos = scroll;
     // get post
     var post = config.cache.postHtml[aff];
     if (post == undefined) {

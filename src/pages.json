@@ -103,7 +103,14 @@
                 {
                   "tagName": "p",
                   "className": "postShare androidIcon",
-                  "innerText": "share"
+                  "innerText": "share",
+                  "reference": "share"
+                },
+                {
+                  "tagName": "p",
+                  "className": "postReport androidIcon",
+                  "innerText": "flag",
+                  "reference": "report"
                 }
               ]
             }
@@ -303,23 +310,27 @@
               "children": [
                 {
                   "tagName": "p",
-                  "className": "commentLike androidIcon",
-                  "innerText": ">[like]<"
+                  "className": "commentLike androidIcon>[like]<",
+                  "innerText": "thumb_up",
+                  "reference": "like"
                 },
                 {
                   "tagName": "p",
                   "className": "commentLikeCount",
-                  "innerText": ">[like_count]<"
+                  "innerText": ">[like_count]<",
+                  "reference": "like_count"
                 },
                 {
                   "tagName": "p",
                   "className": "commentShare androidIcon",
+                  "reference": "share",
                   "innerText": "share"
                 },
                 {
                   "tagName": "p",
-                  "className": "commentFlag androidIcon",
-                  "innerText": "flag"
+                  "className": "commentReport androidIcon",
+                  "innerText": "flag",
+                  "reference": "report"
                 }
               ]
             },

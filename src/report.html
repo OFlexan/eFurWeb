@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Report - eFur</title>
+    <link rel="stylesheet" href="./report.css">
+    <script src="./lib/parse.js"></script>
+    <script src="./report.js"></script>
+  </head>
+  <body>
+    <div class="form">
+      <h1>Report</h1>
+      <p class="error"></p>
+      <input type="radio" name="reason" checked value="Spam"><label for="reason">Spam</label><br>
+      <input type="radio" name="reason" value="Hate speech"><label for="reason">Hate speech</label><br>
+      <input type="radio" name="reason" value="Harassment"><label for="reason">Harassment</label><br>
+      <input type="radio" name="reason" value="Impersonation"><label for="reason">Impersonation</label><br>
+      <input type="radio" name="reason" value="Illegal content"><label for="reason">Illegal content</label><br>
+      <input type="radio" name="reason" value="Threats"><label for="reason">Threats</label><br>
+      <input type="radio" name="reason" value="Personal information"><label for="reason">Personal information</label><br>
+      <input type="radio" name="reason" value="Should be rated NSFW"><label for="reason">Should be rated NSFW</label><br>
+      <input type="radio" name="reason" value="Other"><label for="reason">Other</label><br>
+      <input type="text" placeholder="Additional information">
+      <br>
+      <button>Report</button>
+      <br>
+      <a id="cancel">Cancel</a>
+    </div>
+  </body>
+</html>

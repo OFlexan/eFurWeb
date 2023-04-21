@@ -1,44 +1,19 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   text-align: center;
-}
-
-.background {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  object-fit: cover;
-  margin: 0;
-}
-
-.cover {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(20px);
+  background-color: rgb(20, 20, 20);
 }
 
 .form {
   padding: 12px;
   border-radius: 12px;
-  background-color: rgb(20, 20, 20);
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
 
-img {
-  width: 150px;
-  margin-top: 20px;
-}
-
-input {
+input[type=text] {
   border: 2px solid rgb(50, 50, 50);
   border-radius: 8px;
   padding: 8px;
@@ -50,13 +25,13 @@ input {
   width: 300px;
 }
 
-input:focus {
-  border: 2px solid rgb(255, 166, 0);
+input[type=text]:focus {
+  border: 2px solid rgb(255, 0, 149);
 }
 
 button {
-  background-color: rgb(209, 136, 0);
-  border: 2px solid rgb(170, 111, 0);
+  background-color: rgb(209, 0, 122);
+  border: 2px solid rgb(173, 0, 101);
   border-radius: 8px;
   padding: 8px;
   font-size: 18px;
@@ -68,7 +43,7 @@ button {
 }
 
 button:hover {
-  background-color: rgb(230, 149, 0);
+  background-color: rgb(255, 0, 149);
 }
 
 button:disabled {
@@ -89,10 +64,6 @@ a {
   width: 316px;
 }
 
-.info {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  margin: 0;
+h1, label {
   color: white;
 }

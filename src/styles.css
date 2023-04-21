@@ -46,11 +46,10 @@ body, html {
   border: 1px solid rgb(31, 36, 43);
   border-radius: 12px;
 }
-/* error */
-.error, .fadingError {
+/* alert/error */
+.alert, .fadingAlert, .error, .fadingError {
   width: 100%;
   max-width: 800px;
-  background-color: rgb(255, 0, 0);
   color: white;
   margin: 0;
   padding: 12px;
@@ -61,11 +60,19 @@ body, html {
   border-radius: 4px;
 }
 
-.error {
+.alert, .fadingAlert {
+  background-color: rgb(31, 36, 43);
+}
+
+.error .fadingError {
+  background-color: rgb(255, 0, 0);
+}
+
+.error, .alert {
   animation: fadeIn 150ms;
 }
 
-.fadingError {
+.fadingError, .fadingAlert {
   animation: fadeOut 150ms;
   animation-fill-mode: forwards;
 }
@@ -187,6 +194,17 @@ body, html {
   padding: 8px;
 }
 
+.postBody .storyPost.postTitle {
+  text-align: center;
+  font-weight: 600;
+  font-size: 22px;
+  margin: 0;
+}
+
+.postBody .postContent {
+  margin: 0;
+}
+
 .postBody .imagePost.postTitle {
   text-align: center;
   margin: 2px;
@@ -235,7 +253,7 @@ body, html {
 }
 
 .postFoot .postFavContainer, .postFoot .postComContainer {
-  padding-right: 10%;
+  margin-right: 10%;
   display: inline-block;
   cursor: pointer;
 }
@@ -245,7 +263,6 @@ body, html {
 }
 
 .postFoot .postFavContainer .postFavorite, .postFoot .postFavContainer .postFavoriteCount, .postFoot .postComContainer .postComments, .postFoot .postComContainer .postCommentsCount {
-  margin: 0;
   font-size: 28px;
   line-height: 28px;
   float: left;
@@ -259,11 +276,21 @@ body, html {
 .postFoot .postShare {
   margin: 0;
   display: inline-block;
-  padding-right: 10%;
   font-size: 28px;
   line-height: 28px;
   cursor: pointer;
   color: rgb(0, 162, 255);
+  margin: 0 4px;
+}
+
+.postFoot .postReport {
+  margin: 0;
+  float: right;
+  font-size: 28px;
+  line-height: 28px;
+  cursor: pointer;
+  color: rgb(255, 0, 0);
+  margin: 0 4px;
 }
 
 /* comment */
@@ -287,6 +314,7 @@ body, html {
   float: left;
   margin-right: 8px;
   border-radius: 12px;
+  object-fit: cover;
   cursor: pointer;
 }
 
@@ -367,7 +395,7 @@ body, html {
   color: rgb(0, 162, 255);
 }
 
-.commentFoot .commentFlag {
+.commentFoot .commentReport {
   margin: 0;
   margin-left: 48px;
   float: left;

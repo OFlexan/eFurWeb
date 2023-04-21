@@ -4,6 +4,7 @@ if (Parse.User.current() != null) location.href = "./index.html";
 
 window.onload = function() {
   document.querySelector("button").onclick = async function() {
+    document.querySelector(".error").innerText = "";
     document.querySelector("button").disabled = true;
     await Parse.User.logIn(document.querySelector("input[type=email]").value, document.querySelector("input[type=password]").value).then(() => {
       var r = Object.fromEntries(new URLSearchParams(location.search))["redirect"];
