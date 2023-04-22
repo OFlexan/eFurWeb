@@ -12,6 +12,7 @@
         {
           "tagName": "div",
           "className": "post",
+          "reference": "post",
           "children": [
             {
               "tagName": "div",
@@ -120,17 +121,17 @@
       "imageBody": [
         {
           "tagName": "p",
-          "className": "imagePost postTitle",
+          "className": "mediaPost postTitle",
           "innerText": ">[post_title]<",
           "equals": "post_title"
         },
         {
           "tagName": "div",
-          "className": "postPicContainer",
+          "className": "postMediaContainer",
           "children": [
             {
               "tagName": "img",
-              "className": "postPic",
+              "className": "postMedia",
               "src": ">[post_pic_url]<"
             }
           ]
@@ -162,10 +163,17 @@
           "equals": "post_title"
         },
         {
-          "tagName": "p",
-          "className": "postContent",
-          "innerText": ">[post_content]<",
-          "equals": "post_content"
+          "tagName": "div",
+          "reference": "load_more",
+          "children": [
+            {
+              "tagName": "p",
+              "className": "postContent",
+              "innerText": ">[post_content]<",
+              "equals": "post_content",
+              "reference": "post_content"
+            }
+          ]
         },
         {
           "tagName": "p",
@@ -205,6 +213,52 @@
               "tagName": "p",
               "className": "poll_vote_count",
               "innerText": ">[poll_count]< votes"
+            }
+          ]
+        },
+        {
+          "tagName": "p",
+          "className": "postArtist",
+          "innerText": "© >[post_artist]<",
+          "equals": "post_artist"
+        },
+        {
+          "tagName": "p",
+          "className": "postDescLabel",
+          "innerText": "Description",
+          "equals": "post_desc"
+        },
+        {
+          "tagName": "p",
+          "className": "postDescription",
+          "innerText": ">[post_desc]<",
+          "equals": "post_desc"
+        }
+      ],
+      "videoBody": [
+        {
+          "tagName": "p",
+          "className": "mediaPost postTitle",
+          "innerText": ">[post_title]<",
+          "equals": "post_title"
+        },
+        {
+          "tagName": "div",
+          "className": "postMediaContainer",
+          "children": [
+            {
+              "tagName": "video",
+              "className": "postMedia",
+              "poster": ">[post_thumb_url]<",
+              "__controls": "",
+              "__loop": "",
+              "children": [
+                {
+                  "tagName": "source",
+                  "src": ">[post_vid_url]<",
+                  "type": "video/mp4"
+                }
+              ]
             }
           ]
         },

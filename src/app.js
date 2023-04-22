@@ -2,7 +2,7 @@
 var parse = {
   init: function() {
     Parse.initialize("MiGt7yG9h5WAf7zXRsDHp");
-    Parse.serverURL = "https://api.efur.app/parse";
+    Parse.serverURL = "https://api.efur.app/parse"; // ;) https://api.*/parse
   },
   cloud: {
     version: 101,
@@ -17,7 +17,8 @@ var parse = {
     getNewPosts: async function(rating, timestamp, error) {
       return await this.run("getNewPosts", {
         d: timestamp,
-        r: rating
+        r: rating,
+        //u: Parse.User.current().id // ;)
       }).catch(error);
     },
     getSinglePost: async function(id, rating, error) {
@@ -85,8 +86,8 @@ var parse = {
     post: function(obj) {
       if (obj == undefined) return;
       var type = obj.get("v");
-      // image posts: 0
-      if (type == 0) return {
+      // image posts: 0 / gif posts: 2
+      if (type == 0 || type == 2) return {
         id: obj.id,
         image: this.media(obj.get("data")),
         image_width: obj.get("a"),
@@ -126,6 +127,30 @@ var parse = {
         type: type,
         unknown_y: obj.get("y"),
         hidden: obj.get("x"),
+        createdAt: obj.createdAt,
+        updatedAt: obj.updatedAt
+      }
+      // video posts: 4
+      if (type == 4) return {
+        id: obj.id,
+        video: this.media(obj.get("data")),
+        video_width: obj.get("a"),
+        video_height: obj.get("b"),
+        categories: obj.get("c"),
+        title: obj.get("f"),
+        description: obj.get("i"),
+        artist: obj.get("e"),
+        source: obj.get("s"),
+        favorites: obj.get("k"),
+        comments: obj.get("j"),
+        unknown_l: obj.get("l"),
+        rating: obj.get("r"),
+        tags: obj.get("t"),
+        user: this.user(obj.get("u")),
+        type: type,
+        unknown_y: obj.get("y"),
+        hidden: obj.get("x"),
+        prevent_downloads: obj.get("z"),
         createdAt: obj.createdAt,
         updatedAt: obj.updatedAt
       }
@@ -278,6 +303,13 @@ var pageRenderer = (function() {
     for (var i = 0; i < e.length; i++) {
       if (e[i].equals != undefined && o[e[i].equals] == undefined) continue;
       var d = document.createElement(e[i].tagName);
+      if (e[i].tagName == "radio") d.onclick = ((t) => () => {
+        if (t.classList.contains("checked")) return;
+        var n = t.getAttribute("name");
+        var c = document.querySelector("radio.checked" + (n != null ? "[name=" + n + "]" : ""));
+        if (c) c.classList.remove("checked");
+        t.classList.add("checked");
+      })(d);
       var z = y(e[i].children, o);
       for (var q = 0; q < z.length; q++) d.appendChild(z[q]);
       var k = Object.keys(e[i]);
@@ -293,7 +325,14 @@ var pageRenderer = (function() {
           w = w.substring(w.indexOf("]<") + 2);
         }
         u += w;
-        d[k[q]] = u;
+        if (k[q] == "innerText" && e[i].tagName == "radio") {
+          var z = document.createElement("p");
+          z[k[q]] = u;
+          d.appendChild(z);
+          continue;
+        }
+        if (k[q].startsWith("__")) d.setAttribute(k[q].substring(2), u);
+        else d[k[q]] = u;
       }
       p.push(d);
     }
@@ -302,6 +341,26 @@ var pageRenderer = (function() {
   return {
     init: async function() {
       pages = await fetch("./pages.json").then((j) => j.json());
+    },
+    parseObject: function(obj, options) {
+      return y([obj], options)[0];
+    },
+    parseObjects: function(objs, options) {
+      return {
+        get: function(id, p) {
+          if (p == undefined) p = this.children;
+          for (var i = 0; i < p.length; i++) {
+            if (p[i].reference == id) return p[i];
+            var l = this.get(id, p[i].children);
+            if (l != null) return l;
+          }
+          return null;
+        },
+        children: y(objs, options),
+        appendTo: function(element) {
+          for (var i = 0; i < this.children.length; i++) element.appendChild(this.children[i]);
+        }
+      };
     },
     compile: function(page, name, options) {
       return {
@@ -420,7 +479,7 @@ function alertError(msg) {
   }, 5000);
 }
 
-function createPost(posts, preventCache) {
+function createPost(posts, preventCache, fullFeatures) {
   if (!preventCache) {
     for (var i = 0; i < posts.f.length; i++) config.cache.posts.f.push(posts.f[i]);
     for (var i = 0; i < posts.p.length; i++) config.cache.posts.p.push(posts.p[i]);
@@ -428,37 +487,85 @@ function createPost(posts, preventCache) {
   var f = [];
   for (var i = 0; i < posts.p.length; i++) {
     var post = posts.p[i];
+    var cats = [];
+    for (var z = 0; z < post.categories.length; z++) {
+      cats.push(searchInArray(config.attributes.categories, "i", post.categories[z]).n.replace("&amp;", "&"));
+    }
+    if (post.rating > 0) cats.push(post.rating == 1 ? "SUGGESTIVE" : "EXPLICIT");
     // create post without content
     var postElem = pageRenderer.compile("new", "post", {
       pfp_url: post.user.icon ? post.user.icon.preview : "./res/default_icon.png",
       username: post.user.username,
-      categories: "Stories / Text",
+      categories: cats.join(", "),
       upload_time: formatTime(post.createdAt, 0),
       favorite: posts.f.includes(post.id) ? "favorite" : "favorite_border",
       favorite_count: post.favorites ?? 0,
       comments_count: post.comments ?? 0
     });
+    // set debug index
+    postElem.get("post").setAttribute("index", Object.keys(config.cache.postHtml).length);
     // create content
-    //   image
-    if (post.type == 0) {
+    //   image/gif
+    if (post.type == 0 || post.type == 2) {
       pageRenderer.compile("new", "imageBody", {
         post_title: post.title,
-        post_pic_url: post.image.preview,
+        post_pic_url: post.type == 2 ? post.image.full : post.image.preview,
         post_artist: post.artist,
         post_desc: post.description
       }).appendTo(postElem.get("body"));
     }
     //   story
     if (post.type == 1) {
-      pageRenderer.compile("new", "storyBody", {
+      var c = pageRenderer.compile("new", "storyBody", {
         post_title: post.title,
-        post_content: post.content,
+        post_content: post.story && fullFeatures ? "Loading..." : (post.story ? post.content + "..." : post.content),
         post_artist: post.artist,
         post_desc: post.description
-      }).appendTo(postElem.get("body"));
+      });
+      if (post.story && fullFeatures) {
+        (async (d) => {
+          d.innerText = await fetch(post.story.full).then((t) => t.text());
+        })(c.get("post_content"));
+      }
+      if (post.story && !fullFeatures) {
+        var l = document.createElement("span");
+        l.className = "storyPostMore";
+        l.innerText = "Expand";
+        l.reference = "load_more_label";
+        l.url = post.story.full;
+        l.onclick = ((id) => async () => {
+          location.hash = "post@" + id;
+        })(post.id);
+        c.get("post_content").appendChild(l);
+      }
+      c.appendTo(postElem.get("body"));
     }
     //   poll
     if (post.type == 3) {
+      var poll = pageRenderer.compile("new", "pollBody", {
+        poll_title: post.poll.title,
+        poll_count: post.poll.total_votes,
+        post_artist: post.artist,
+        post_desc: post.description
+      });
+      for (var z = 0; z < post.poll.options.length; z++) {
+        var o = pageRenderer.parseObjects([
+          {tagName: "radio", innerText: post.poll.options[z]},
+          {tagName: "br"}
+        ], {});
+        o.appendTo(poll.get("poll_options"));
+      }
+      poll.appendTo(postElem.get("body"));
+    }
+    //   video
+    if (post.type == 4) {
+      pageRenderer.compile("new", "videoBody", {
+        post_title: post.title,
+        post_thumb_url: post.video.preview,
+        post_vid_url: post.video.video,
+        post_artist: post.artist,
+        post_desc: post.description
+      }).appendTo(postElem.get("body"));
     }
     // favorite functionality
     var fav = postElem.get("isfavorite");
@@ -470,16 +577,22 @@ function createPost(posts, preventCache) {
       if (c == undefined) return;
       fav.innerText = c.g ? "favorite" : "favorite_border";
       count.innerText = c.f;
+      // make the "heart" stay when going back from comments, this is very glitchy
+      if (c.g) config.cache.posts.f.push(id);
+      else if (f.indexOf(id)) config.cache.posts.f.splice(f.indexOf(id), 1);
     })(postElem.get("favorite_count"), fav, post.id);
     // comment functionality
     postElem.get("comments").onclick = ((id) => async () => {
       location.hash = "post@" + id;
     })(post.id);
     // share/report functionality
-    var l = location.href;
-    if (l.includes("#")) l = l.substring(0, l.indexOf("#"));
+    var x = new URL(location.href);
+    x.pathname = x.pathname.substring(0, x.pathname.lastIndexOf("/") + 1) + "share.html";
+    x.search = "";
+    x.hash = "";
+    var l = x.href;
     postElem.get("share").onclick = ((id) => async () => {
-      await navigator.clipboard.writeText(l + "#post@" + id);
+      await navigator.clipboard.writeText(l + "?type=post&id=" + id);
       alert("Copied link to clipboard!");
     })(post.id);
     postElem.get("report").onclick = ((id) => () => window.open("./report.html?type=post&id=" + id, "_blank"))(post.id);
@@ -625,7 +738,11 @@ async function initPage(page, fromHash) {
     if (post == undefined) {
       var posts = await parse.cloud.getSinglePost(aff, config.rating, (e) => alertError(e.message));
       posts.p = parse.parse.array(posts.p, "post");
-      post = createPost(posts, true)[0];
+      post = createPost(posts, true, true)[0];
+    } else if (post.get("load_more_label")) {
+      var l = post.get("load_more_label");
+      l.parentNode.removeChild(l);
+      post.get("post_content").innerText = await fetch(l.url).then((t) => t.text());
     }
     // create page and append post
     var p = pageRenderer.render(page, {
@@ -654,7 +771,8 @@ var pages;
   console.log("[eFur] Initializing...");
   parse.init();
   await pageRenderer.init();
-  // remove loading screen
+  console.log("[eFur] Getting config...");
+  config.attributes = (await Parse.Config.get()).attributes;
   console.log("[eFur] Initialized!");
 
   // check if user is logged in

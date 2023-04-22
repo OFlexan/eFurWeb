@@ -100,6 +100,76 @@ body, html {
 }
 
 /*
+  radio buttons and checkboxes
+*/
+radio {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+}
+
+radio::before {
+  content: "";
+  float: left;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  border: 3px solid rgb(168, 168, 168);
+  border-radius: 50%;
+}
+
+radio.checked::before {
+  border: 3px solid rgb(255, 166, 0);
+}
+
+radio p::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
+  background-color: rgb(168, 168, 168);
+  transform: translate(-50%, 7px);
+  border-radius: 50%;
+  animation: radioPopOut 100ms;
+  animation-fill-mode: forwards;
+}
+
+radio.checked p::before {
+  background-color: rgb(255, 166, 0);
+  animation: radioPopIn 450ms;
+}
+
+radio p {
+  float: left;
+  margin: 0;
+  line-height: 30px;
+}
+
+@keyframes radioPopIn {
+  0% {
+    transform: translate(-50%, 7px) scale(0);
+  }
+  60% {
+    transform: translate(-50%, 7px) scale(1.25);
+  }
+  100% {
+    transform: translate(-50%, 7px) scale(1);
+  }
+}
+
+@keyframes radioPopOut {
+  0% {
+    transform: translate(-50%, 7px) scale(1);
+  }
+  100% {
+    transform: translate(-50%, 7px) scale(0);
+  }
+}
+
+/*
   html header
 */
 .htmlHeader {
@@ -205,12 +275,20 @@ body, html {
   margin: 0;
 }
 
-.postBody .imagePost.postTitle {
+.postBody .storyPostMore {
+  color: rgb(0, 162, 255);
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+  margin-left: 8px;
+}
+
+.postBody .mediaPost.postTitle {
   text-align: center;
   margin: 2px;
 }
 /* add black bars to pic */
-.postPicContainer {
+.postMediaContainer {
   float: none;
   padding: 0;
   background: black;
@@ -219,13 +297,13 @@ body, html {
   transform: translateX(-8px);
 }
 
-.postPicContainer .postPic {
+.postMediaContainer .postMedia {
   display: block;
   max-height: 70vh;
   max-width: 100%;
   margin: auto;
 }
-/* end of ^ */
+
 .postArtist {
   font-size: 16px;
   margin: 0;

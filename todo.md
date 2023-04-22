@@ -4,3 +4,4 @@
 - Check for `null` in deleted comment texts
 - ~~Maybe fix resolution for images (add max height and borders)~~
 - Add an indicator so people know there are comments under the post (like a down arrow button/gradient overlay)
+- Make the heart and favorite count stay when switching between pages using cache
