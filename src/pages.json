@@ -20,6 +20,7 @@
               "children": [
                 {
                   "tagName": "div",
+                  "className": "profileLeft",
                   "children": [
                     {
                       "tagName": "img",
@@ -210,8 +211,14 @@
               "reference": "poll_options"
             },
             {
+              "tagName": "button",
+              "className": "pollSubmit",
+              "innerText": "Vote",
+              "reference": "poll_submit"
+            },
+            {
               "tagName": "p",
-              "className": "poll_vote_count",
+              "className": "pollVotes",
               "innerText": ">[poll_count]< votes"
             }
           ]
@@ -409,5 +416,113 @@
         }
       ]
     }
+  },
+  "profile": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "previewContainer",
+        "children": [
+          {
+            "tagName": "img",
+            "className": "pflBackground",
+            "src": ">[background]<"
+          },
+          {
+            "tagName": "img",
+            "className": "pflIcon",
+            "src": ">[icon]<"
+          },
+          {
+            "tagName": "div",
+            "className": "pflRelative",
+            "children": [
+              {
+                "tagName": "p",
+                "className": "pflUsername",
+                "innerText": ">[username]<"
+              },
+              {
+                "tagName": "div",
+                "className": "pflQuickStats",
+                "children": [
+                  {
+                    "tagName": "div",
+                    "className": "pflFollowing",
+                    "children": [
+                      {
+                        "tagName": "p",
+                        "className": "pflStatCount",
+                        "innerText": ">[following]<"
+                      },
+                      {
+                        "tagName": "p",
+                        "className": "pflStat",
+                        "innerText": "following"
+                      }
+                    ]
+                  },
+                  {
+                    "tagName": "div",
+                    "className": "pflFollowers",
+                    "children": [
+                      {
+                        "tagName": "p",
+                        "className": "pflStatCount",
+                        "innerText": ">[followers]<"
+                      },
+                      {
+                        "tagName": "p",
+                        "className": "pflStat",
+                        "innerText": "followers"
+                      }
+                    ]
+                  },
+                  {
+                    "tagName": "div",
+                    "className": "pflPosts",
+                    "children": [
+                      {
+                        "tagName": "p",
+                        "className": "pflStatCount",
+                        "innerText": ">[posts]<"
+                      },
+                      {
+                        "tagName": "p",
+                        "className": "pflStat",
+                        "innerText": "posts"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "tagName": "p",
+                "className": "pflInfo androidIcon",
+                "innerText": "info"
+              },
+              {
+                "tagName": "p",
+                "className": "pflSince",
+                "innerText": "MEMBER FOR >[since]<"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tagName": "div",
+        "className": "htmlHeader",
+        "equals": "username",
+        "children": [
+          {
+            "tagName": "p",
+            "className": "htmlBack androidIcon",
+            "reference": "html_back",
+            "innerText": "arrow_back"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -2,7 +2,11 @@
 var parse = {
   init: function() {
     Parse.initialize("MiGt7yG9h5WAf7zXRsDHp");
-    Parse.serverURL = "https://api.efur.app/parse"; // ;) https://api.*/parse
+    Parse.serverURL = "https://api.efur.app/parse";
+  },
+  extension: {
+    path: "./",
+    allowShare: true
   },
   cloud: {
     version: 101,
@@ -17,8 +21,7 @@ var parse = {
     getNewPosts: async function(rating, timestamp, error) {
       return await this.run("getNewPosts", {
         d: timestamp,
-        r: rating,
-        //u: Parse.User.current().id // ;)
+        r: rating
       }).catch(error);
     },
     getSinglePost: async function(id, rating, error) {
@@ -71,6 +74,12 @@ var parse = {
       return await this.run("favComment", {
         a: favOrUnfav,
         c: commentId
+      }).catch(error);
+    },
+    voteOnPoll: async function(pollId, optionIndexes, error) {
+      return await this.run("voteOnPoll", {
+        p: pollId,
+        v: optionIndexes
       }).catch(error);
     },
     run: async function(name, request) {
@@ -291,6 +300,27 @@ var parse = {
         a.push(this[type](arr[i]));
       }
       return a;
+    },
+    profile: function(obj) {
+      if (obj == undefined) return;
+      return {
+        id: obj.id,
+        icon: this.media(obj.a),
+        isModerator: obj.ab,
+        background: this.media(obj.b),
+        followingCount: obj.c,
+        followerCount: obj.d,
+        likeCount: obj.e,
+        commentCount: obj.f,
+        isFollowing: obj.g,
+        postCount: obj.h,
+        followingThumb: this.array(obj.ia, "user"),
+        followersThumb: this.array(obj.ib, "user"),
+        memberSince: obj.s,
+        username: obj.u,
+        createdAt: obj.createdAt,
+        updatedAt: obj.updatedAt
+      }
     }
   }
 };
@@ -310,6 +340,10 @@ var pageRenderer = (function() {
         if (c) c.classList.remove("checked");
         t.classList.add("checked");
       })(d);
+      if (e[i].tagName == "checkbox") d.onclick = ((t) => () => {
+        if (t.classList.contains("checked")) t.classList.remove("checked");
+        else t.classList.add("checked");
+      })(d);
       var z = y(e[i].children, o);
       for (var q = 0; q < z.length; q++) d.appendChild(z[q]);
       var k = Object.keys(e[i]);
@@ -325,7 +359,7 @@ var pageRenderer = (function() {
           w = w.substring(w.indexOf("]<") + 2);
         }
         u += w;
-        if (k[q] == "innerText" && e[i].tagName == "radio") {
+        if (k[q] == "innerText" && (e[i].tagName == "radio" || e[i].tagName == "checkbox")) {
           var z = document.createElement("p");
           z[k[q]] = u;
           d.appendChild(z);
@@ -340,7 +374,7 @@ var pageRenderer = (function() {
   };
   return {
     init: async function() {
-      pages = await fetch("./pages.json").then((j) => j.json());
+      pages = await fetch(parse.extension.path + "pages.json").then((j) => j.json());
     },
     parseObject: function(obj, options) {
       return y([obj], options)[0];
@@ -494,7 +528,7 @@ function createPost(posts, preventCache, fullFeatures) {
     if (post.rating > 0) cats.push(post.rating == 1 ? "SUGGESTIVE" : "EXPLICIT");
     // create post without content
     var postElem = pageRenderer.compile("new", "post", {
-      pfp_url: post.user.icon ? post.user.icon.preview : "./res/default_icon.png",
+      pfp_url: post.user.icon ? post.user.icon.preview : parse.extension.path + "res/default_icon.png",
       username: post.user.username,
       categories: cats.join(", "),
       upload_time: formatTime(post.createdAt, 0),
@@ -550,12 +584,35 @@ function createPost(posts, preventCache, fullFeatures) {
       });
       for (var z = 0; z < post.poll.options.length; z++) {
         var o = pageRenderer.parseObjects([
-          {tagName: "radio", innerText: post.poll.options[z]},
+          {tagName: post.poll.multi ? "checkbox" : "radio", innerText: post.poll.options[z], __name: "poll-" + post.poll.id, voteIndex: z + ""},
           {tagName: "br"}
         ], {});
         o.appendTo(poll.get("poll_options"));
       }
       poll.appendTo(postElem.get("body"));
+      poll.get("poll_submit").onclick = ((id, m) => async () => {
+        var v = [];
+        if (m) {
+          // multi
+          var s = document.querySelectorAll("checkbox.checked[name=poll-" + id + "]");
+          if (s.length == 0) {
+            alertError("Select at least one option!");
+            return;
+          }
+          for (var x = 0; x < s.length; x++) v.push(+s[x].voteIndex);
+        } else {
+          // single
+          var s = document.querySelector("radio.checked[name=poll-" + id + "]");
+          if (s == null) {
+            alertError("Select at least one option!");
+            return;
+          }
+          v.push(+s.voteIndex);
+        }
+        // vote on poll
+        var r = await parse.cloud.voteOnPoll(id, v, (e) => alertError(e.message));
+        alert("Voted! You cannot currently see results as this is a work in progress.");
+      })(post.poll.id, post.poll.multi);
     }
     //   video
     if (post.type == 4) {
@@ -592,10 +649,14 @@ function createPost(posts, preventCache, fullFeatures) {
     x.hash = "";
     var l = x.href;
     postElem.get("share").onclick = ((id) => async () => {
-      await navigator.clipboard.writeText(l + "?type=post&id=" + id);
-      alert("Copied link to clipboard!");
+      if (parse.extension.allowShare) {
+        await navigator.clipboard.writeText(l + "?type=post&id=" + id);
+        alert("Copied link to clipboard!");
+        return;
+      }
+      alert("Sharing is disabled!");
     })(post.id);
-    postElem.get("report").onclick = ((id) => () => window.open("./report.html?type=post&id=" + id, "_blank"))(post.id);
+    postElem.get("report").onclick = ((id) => () => window.open(parse.extension.path + "report.html?type=post&id=" + id, "_blank"))(post.id);
     // cache post
     f.push(postElem);
     if (!preventCache) {
@@ -613,7 +674,7 @@ async function createComments(aff, sub, d) {
     var comment = comments.c[i];
     // create comment
     var commentElem = pageRenderer.compile("post", "comment", {
-      pfp_url: comment.user.icon ? comment.user.icon.preview : "./res/default_icon.png",
+      pfp_url: comment.user.icon ? comment.user.icon.preview : parse.extension.path + "res/default_icon.png",
       username: comment.user.username,
       upload_time: formatTime(comment.createdAt, 1),
       content: comment.content,
@@ -653,10 +714,14 @@ async function createComments(aff, sub, d) {
     var l = location.href;
     if (l.includes("#")) l = l.substring(0, l.indexOf("#"));
     commentElem.get("share").onclick = ((id) => async () => {
-      await navigator.clipboard.writeText(l + "#comment@" + id);
-      alert("Copied link to clipboard!");
+      if (parse.extension.allowShare) {
+        await navigator.clipboard.writeText(l + "#comment@" + id);
+        alert("Copied link to clipboard!");
+        return;
+      }
+      alert("Sharing is disabled!");
     })(comment.id);
-    commentElem.get("report").onclick = ((id) => () => window.open("./report.html?type=comment&id=" + id, "_blank"))(comment.id);
+    commentElem.get("report").onclick = ((id) => () => window.open(parse.extension.path + "report.html?type=comment&id=" + id, "_blank"))(comment.id);
     // add comment
     commentElem.appendTo(d);
   }
@@ -761,8 +826,27 @@ async function initPage(page, fromHash) {
     await createComments(aff, undefined, p.body.get("container"));
     return;
   }
+  // page: new
+  if (page == "profile") {
+    // get profile
+    var profile = parse.parse.profile(await parse.cloud.getUserProfile(aff, (e) => alertError(e.message)));
+    // create page
+    var p = pageRenderer.render(page, {
+      background: profile.background.preview,
+      icon: profile.icon.preview,
+      username: profile.username,
+      following: profile.followingCount,
+      followers: profile.followerCount,
+      posts: profile.postCount,
+      since: formatTime(new Date(profile.memberSince), 2)
+    });
+    p.body.appendTo(document.body);
+    return;
+  }
   location.hash = "new";
 }
+
+if (window.loadExtension) window.loadExtension();
 
 // run first time
 var pages;
@@ -777,7 +861,7 @@ var pages;
 
   // check if user is logged in
   if (Parse.User.current() == null) {
-    location.href = "./login.html" + (location.hash != "" ? "?redirect=" + location.hash.substring(1) : "");
+    location.href = parse.extension.path + "login.html" + (location.hash != "" ? "?redirect=" + location.hash.substring(1) : "");
     return;
   }
 

@@ -64,7 +64,7 @@ body, html {
   background-color: rgb(31, 36, 43);
 }
 
-.error .fadingError {
+.error, .fadingError {
   background-color: rgb(255, 0, 0);
 }
 
@@ -102,14 +102,14 @@ body, html {
 /*
   radio buttons and checkboxes
 */
-radio {
+radio, checkbox {
   position: relative;
   display: inline-block;
   cursor: pointer;
   user-select: none;
 }
 
-radio::before {
+radio::before, checkbox::before {
   content: "";
   float: left;
   width: 24px;
@@ -119,11 +119,15 @@ radio::before {
   border-radius: 50%;
 }
 
-radio.checked::before {
+checkbox::before {
+  border-radius: 4px;
+}
+
+radio.checked::before, checkbox.checked::before {
   border: 3px solid rgb(255, 166, 0);
 }
 
-radio p::before {
+radio p::before, checkbox p::before {
   content: "";
   position: absolute;
   left: 15px;
@@ -132,17 +136,20 @@ radio p::before {
   margin-right: 10px;
   background-color: rgb(168, 168, 168);
   transform: translate(-50%, 7px);
-  border-radius: 50%;
   animation: radioPopOut 100ms;
   animation-fill-mode: forwards;
 }
 
-radio.checked p::before {
+radio p::before {
+  border-radius: 50%;
+}
+
+radio.checked p::before, checkbox.checked p::before {
   background-color: rgb(255, 166, 0);
   animation: radioPopIn 450ms;
 }
 
-radio p {
+radio p, checkbox p {
   float: left;
   margin: 0;
   line-height: 30px;
@@ -153,7 +160,7 @@ radio p {
     transform: translate(-50%, 7px) scale(0);
   }
   60% {
-    transform: translate(-50%, 7px) scale(1.25);
+    transform: translate(-50%, 7px) scale(1.2);
   }
   100% {
     transform: translate(-50%, 7px) scale(1);
@@ -212,6 +219,10 @@ radio p {
   column-count: 2;
 }
 
+.postHead .profileLeft {
+  width: calc(200% - 80px);
+}
+
 .postHead .profilePic {
   width: 50px;
   height: 50px;
@@ -239,6 +250,8 @@ radio p {
 
 .postHead .profileRight {
   text-align: right;
+  width: 80px;
+  float: right;
 }
 
 .postHead .postTime {
@@ -371,6 +384,41 @@ radio p {
   margin: 0 4px;
 }
 
+/* poll */
+.postPoll {
+  background-color: rgb(19, 23, 27);
+  width: calc(100% - 16px);
+  transform: translateX(-8px);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.postPoll .pollTitle {
+  margin: 0;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 22px;
+}
+
+.postPoll .pollSubmit {
+  width: 100%;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 18px;
+  border: none;
+  color: white;
+  background-color: rgb(42, 48, 54);
+  margin-top: 10px;
+  cursor: pointer;
+  outline: none;
+}
+
+.postPoll .pollVotes {
+  margin: 0;
+  margin-top: 8px;
+  color: rgb(168, 168, 168);
+}
+
 /* comment */
 .comment {
   margin: 8px 0;
@@ -498,4 +546,56 @@ radio p {
   color: rgb(0, 162, 255);
   user-select: none;
   cursor: pointer;
+}
+
+/* profile */
+.pflBackground {
+  width: 100%;
+  height: 30%;
+  object-fit: cover;
+  --mask: linear-gradient(to bottom, rgba(0,0,0, 1) 0,   rgba(0,0,0, 1) 40%, rgba(0,0,0, 0) 100%, rgba(0,0,0, 0) 0) 100% 50% / 100% 100% repeat-x;
+  -webkit-mask: var(--mask);
+  mask: var(--mask);
+}
+
+.pflIcon {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  transform: translate(-50%, -75%);
+  border-radius: 20%;
+  object-fit: cover;
+}
+
+.pflRelative {
+  position: absolute;
+  top: calc(30% + 55px);
+  width: 100%;
+  height: calc(100% - (30% + 55px));
+}
+
+.pflRelative .pflUsername {
+  margin: 0;
+  margin-left: 50%;
+  text-align: center;
+  transform: translateX(-50%);
+  font-size: 30px;
+}
+
+.pflRelative .pflQuickStats {
+  column-count: 3;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.pflRelative .pflStatCount {
+  margin: 0;
+  font-size: 30px;
+}
+
+.pflRelative .pflStat {
+  margin: 0;
+  color: rgb(168, 168, 168);
 }
