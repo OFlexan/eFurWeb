@@ -51,7 +51,8 @@
                     {
                       "tagName": "p",
                       "className": "postMore androidIcon",
-                      "innerText": "keyboard_control"
+                      "innerText": "keyboard_control",
+                      "reference": "more"
                     }
                   ]
                 }
@@ -104,12 +105,6 @@
                 },
                 {
                   "tagName": "p",
-                  "className": "postShare androidIcon",
-                  "innerText": "share",
-                  "reference": "share"
-                },
-                {
-                  "tagName": "p",
                   "className": "postReport androidIcon",
                   "innerText": "flag",
                   "reference": "report"
@@ -133,7 +128,8 @@
             {
               "tagName": "img",
               "className": "postMedia",
-              "src": ">[post_pic_url]<"
+              "src": ">[post_pic_url]<",
+              "__oncontextmenu": "return false"
             }
           ]
         },
@@ -422,6 +418,7 @@
       {
         "tagName": "div",
         "className": "previewContainer",
+        "reference": "container",
         "children": [
           {
             "tagName": "img",
@@ -513,7 +510,7 @@
       {
         "tagName": "div",
         "className": "htmlHeader",
-        "equals": "username",
+        "equals": "hash",
         "children": [
           {
             "tagName": "p",

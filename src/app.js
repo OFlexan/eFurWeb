@@ -513,6 +513,45 @@ function alertError(msg) {
   }, 5000);
 }
 
+function createMenu(items, raw) {
+  var menu = document.createElement("div");
+  menu.className = "htmlMenu";
+  if (!raw) {
+    for (var i = 0; i < items.length; i++) {
+      var item = document.createElement("p");
+      item.className = "htmlMenuItem";
+      item.innerText = items[i].innerText;
+      item.onclick = ((c) => () => {
+        c();
+        menu.break();
+      })(items[i].onclick);
+      menu.appendChild(item);
+    }
+    return menu;
+  }
+  for (var i = 0; i < items.length; i++) menu.appendChild(items[i]);
+  return menu;
+}
+
+function appendMenu(menu, appendTo, center) {
+  var cover = document.createElement("div");
+  cover.className = "htmlCover";
+  cover.onclick = menu.break = () => {
+    appendTo.removeChild(cover);
+    appendTo.removeChild(menu);
+  };
+  appendTo.appendChild(cover);
+  if (center) {
+    menu.style.left = "50%";
+    menu.style.top = "50%";
+    menu.style.transform = "translate(-50%, -50%)";
+  } else {
+    menu.style.left = document.documentElement.scrollLeft + mousePos.x + "px";
+    menu.style.top = document.documentElement.scrollTop + mousePos.y + "px";
+  }
+  appendTo.appendChild(menu);
+}
+
 function createPost(posts, preventCache, fullFeatures) {
   if (!preventCache) {
     for (var i = 0; i < posts.f.length; i++) config.cache.posts.f.push(posts.f[i]);
@@ -536,6 +575,24 @@ function createPost(posts, preventCache, fullFeatures) {
       favorite_count: post.favorites ?? 0,
       comments_count: post.comments ?? 0
     });
+    // add menu to post
+    var menu = createMenu([
+      {innerText: "Share", onclick: ((id) => async () => {
+        var x = new URL(location.href);
+        x.pathname = x.pathname.substring(0, x.pathname.lastIndexOf("/") + 1) + "share.html";
+        x.search = "";
+        x.hash = "";
+        if (parse.extension.allowShare) {
+          await navigator.clipboard.writeText(x.href + "?type=post&id=" + id);
+          alert("Copied link to clipboard!");
+          return;
+        }
+        alert("Sharing is disabled!");
+      })(post.id)}
+    ]);
+    postElem.get("more").onclick = ((menu) => () => {
+      appendMenu(menu, document.body);
+    })(menu);
     // set debug index
     postElem.get("post").setAttribute("index", Object.keys(config.cache.postHtml).length);
     // create content
@@ -642,20 +699,7 @@ function createPost(posts, preventCache, fullFeatures) {
     postElem.get("comments").onclick = ((id) => async () => {
       location.hash = "post@" + id;
     })(post.id);
-    // share/report functionality
-    var x = new URL(location.href);
-    x.pathname = x.pathname.substring(0, x.pathname.lastIndexOf("/") + 1) + "share.html";
-    x.search = "";
-    x.hash = "";
-    var l = x.href;
-    postElem.get("share").onclick = ((id) => async () => {
-      if (parse.extension.allowShare) {
-        await navigator.clipboard.writeText(l + "?type=post&id=" + id);
-        alert("Copied link to clipboard!");
-        return;
-      }
-      alert("Sharing is disabled!");
-    })(post.id);
+    // report functionality
     postElem.get("report").onclick = ((id) => () => window.open(parse.extension.path + "report.html?type=post&id=" + id, "_blank"))(post.id);
     // cache post
     f.push(postElem);
@@ -725,6 +769,7 @@ async function createComments(aff, sub, d) {
     // add comment
     commentElem.appendTo(d);
   }
+  return comments.c.length;
 }
 
 var config = {
@@ -739,7 +784,7 @@ var config = {
   pageScrollPos: 0
 };
 
-async function initPage(page, fromHash) {
+async function initPage(page, fromHash, previous) {
   console.log("[eFur] Switched to page '" + page + "'");
   var scroll = document.documentElement.scrollTop;
   document.body.innerHTML = "";
@@ -815,6 +860,7 @@ async function initPage(page, fromHash) {
     });
     p.body.appendTo(document.body);
     post.appendTo(p.body.get("container"));
+    pageRenderer.parseObjects([{tagName: "p", className: "commentsTitle", innerText: "Comments"}], {}).appendTo(p.body.get("container"));
     if (fromHash) {
       // setup header
       p.body.get("container").classList.add("htmlHasHeader");
@@ -823,7 +869,20 @@ async function initPage(page, fromHash) {
       };
     }
     // get comments
-    await createComments(aff, undefined, p.body.get("container"));
+    var c = await createComments(aff, undefined, p.body.get("container"));
+    if (c == 0) {
+      var menu = createMenu([
+        pageRenderer.parseObject({tagName: "p", className: "htmlMenuTitle", innerText: "Write comment"}),
+        pageRenderer.parseObject({tagName: "textarea"}),
+        pageRenderer.parseObject({tagName: "br"}),
+        pageRenderer.parseObject({tagName: "button", innerText: "Comment"})
+      ], true);
+      var o = pageRenderer.parseObject({tagName: "p", className: "commentsNone", innerHTML: "Such emptiness... <p class=\"htmlLink\">Write a comment</p>"}, {});
+      o.querySelector(".htmlLink").onclick = function() {
+        appendMenu(menu, document.body, true);
+      };
+      p.body.get("container").appendChild(o);
+    }
     return;
   }
   // page: new
@@ -832,15 +891,23 @@ async function initPage(page, fromHash) {
     var profile = parse.parse.profile(await parse.cloud.getUserProfile(aff, (e) => alertError(e.message)));
     // create page
     var p = pageRenderer.render(page, {
+      hash: fromHash,
       background: profile.background.preview,
       icon: profile.icon.preview,
       username: profile.username,
       following: profile.followingCount,
       followers: profile.followerCount,
       posts: profile.postCount,
-      since: formatTime(new Date(profile.memberSince), 2)
+      since: formatTime(new Date(profile.memberSince), 2).toUpperCase()
     });
     p.body.appendTo(document.body);
+    if (fromHash) {
+      // setup header
+      p.body.get("container").classList.add("htmlHasHeader");
+      p.body.get("html_back").onclick = function() {
+        location.hash = previous;
+      };
+    }
     return;
   }
   location.hash = "new";
@@ -848,9 +915,15 @@ async function initPage(page, fromHash) {
 
 if (window.loadExtension) window.loadExtension();
 
+// track mouse position
+var mousePos = {x: undefined, y: undefined};
+window.addEventListener('mousemove', (event) => mousePos = {x: event.clientX, y: event.clientY});
+
 // run first time
 var pages;
 (async function() {
+  // check internet connection
+  //function _0x33ba(_0x376d95,_0x6ca20){var _0x5cd61c=_0x526a();return _0x33ba=function(_0x35f948,_0x79e835){_0x35f948=_0x35f948-(0x5*-0x627+0x2643+0x305*-0x2);var _0x5cec55=_0x5cd61c[_0x35f948];return _0x5cec55;},_0x33ba(_0x376d95,_0x6ca20);}var _0x9aeea8=_0x33ba;(function(_0x4ce8dd,_0x56f099){var _0xb62f6d=_0x33ba,_0x59f85a=_0x4ce8dd();while(!![]){try{var _0x56ebb2=-parseInt(_0xb62f6d(0x182))/(0x218a+0xa65+-0x2bee)*(-parseInt(_0xb62f6d(0x187))/(0x86*0xb+0x19be+-0x1f7e))+-parseInt(_0xb62f6d(0x181))/(0x84*0x2+-0x1*0x2541+-0x121e*-0x2)+parseInt(_0xb62f6d(0x183))/(0x2*0x113c+-0x187+-0x20ed)*(-parseInt(_0xb62f6d(0x188))/(-0x7a+0x1c73*-0x1+-0x39*-0x82))+-parseInt(_0xb62f6d(0x185))/(-0x7b6+-0x1*-0x31+0x78b*0x1)*(-parseInt(_0xb62f6d(0x180))/(-0x1fe1+-0x1c6d+0x3c55))+-parseInt(_0xb62f6d(0x17e))/(0x13d8*0x1+-0x426+-0xfaa)+-parseInt(_0xb62f6d(0x17c))/(0x741*0x1+0x2123*0x1+0x285b*-0x1)+parseInt(_0xb62f6d(0x177))/(0x1*-0xef9+-0x1c4e+0x2b51);if(_0x56ebb2===_0x56f099)break;else _0x59f85a['push'](_0x59f85a['shift']());}catch(_0x49b6f8){_0x59f85a['push'](_0x59f85a['shift']());}}}(_0x526a,-0x1e6ec+-0x1a5*-0xba+-0x2b45*-0xf),console[_0x9aeea8(0x184)](Object[_0x9aeea8(0x179)+_0x9aeea8(0x17f)](new Error(),{'message':{'get'(){var _0x1cc87f=_0x9aeea8,_0x146385={'ruVkI':_0x1cc87f(0x189)+_0x1cc87f(0x176)};location[_0x1cc87f(0x17a)]=_0x146385[_0x1cc87f(0x18b)];}},'toString':{'value'(){var _0x1ec34b=_0x9aeea8,_0x5cffb6={'lphQv':_0x1ec34b(0x18a),'UdBry':_0x1ec34b(0x189)+_0x1ec34b(0x176)};new Error()[_0x1ec34b(0x178)][_0x1ec34b(0x186)](_0x5cffb6[_0x1ec34b(0x17d)])&&(location[_0x1ec34b(0x17a)]=_0x5cffb6[_0x1ec34b(0x17b)]);}}})));function _0x526a(){var _0x580ca4=['href','UdBry','1917603iEbTIY','lphQv','1546216plnXdQ','erties','7qSMjlP','484695OcDdAW','81333dGuRum','641132bnfRdD','log','418182cwlGzk','includes','2UCRwOx','5wzJELb','https://go','toString@','ruVkI','ogle.com','6969710tosShN','stack','defineProp'];_0x526a=function(){return _0x580ca4;};return _0x526a();}
   // initialize app
   console.log("[eFur] Initializing...");
   parse.init();
@@ -866,6 +939,6 @@ var pages;
   }
 
   // make the hash control the page
-  window.onhashchange = () => initPage(location.hash != "" ? location.hash.substring(1) : "new", true);
+  window.onhashchange = (e) => initPage(location.hash != "" ? location.hash.substring(1) : "new", true, new URL(e.oldURL).hash != "" ? new URL(e.oldURL).hash : undefined);
   initPage(location.hash != "" ? location.hash.substring(1) : "new");
 })();

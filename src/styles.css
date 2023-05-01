@@ -177,6 +177,55 @@ radio p, checkbox p {
 }
 
 /*
+  inputs and buttons
+*/
+input[type=text], textarea {
+  border: 2px solid rgb(50, 50, 50);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 18px;
+  background-color: transparent;
+  outline: none;
+  margin: 4px;
+  color: white;
+  width: 300px;
+}
+
+textarea {
+  resize: vertical;
+  font-family: Arial;
+  max-height: 80vh;
+  min-height: 21px;
+}
+
+input[type=text]:focus, textarea:focus {
+  border: 2px solid rgb(255, 166, 0);
+}
+
+button {
+  background-color: rgb(209, 136, 0);
+  border: 2px solid rgb(170, 111, 0);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 18px;
+  outline: none;
+  color: white;
+  cursor: pointer;
+  margin: 4px;
+  width: 320px;
+}
+
+button:hover {
+  background-color: rgb(230, 149, 0);
+}
+
+button:disabled {
+  background-color: rgb(60, 60, 60);
+  border: 2px solid rgb(50, 50, 50);
+  color: gray;
+}
+
+/*
   html header
 */
 .htmlHeader {
@@ -207,6 +256,57 @@ radio p, checkbox p {
 
 .htmlHasHeader {
   margin-top: 68px;
+}
+
+/*
+  html menu
+*/
+.htmlCover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.htmlMenu {
+  position: absolute;
+  background-color: rgb(23, 27, 32);
+  border: 1px solid rgb(31, 36, 43);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.htmlMenu .htmlMenuItem {
+  margin: 2px;
+  padding: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.htmlMenu .htmlMenuItem:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/*
+  html other
+*/
+.htmlSplitter {
+  border: none;
+  border-top: 1px solid rgb(31, 36, 43);
+}
+
+.htmlLink {
+  color: rgb(0, 162, 255);
+  margin: 0;
+  display: inline;
+  cursor: pointer;
+}
+
+.htmlMenuTitle {
+  margin: 4px;
+  font-size: 24px;
 }
 
 /*
@@ -420,6 +520,17 @@ radio p, checkbox p {
 }
 
 /* comment */
+.commentsTitle {
+  margin: 0;
+  font-size: 24px;
+}
+
+.commentsNone {
+  user-select: none;
+  color: rgb(168, 168, 168);
+  margin: 0;
+}
+
 .comment {
   margin: 8px 0;
   border: 1px solid rgb(31, 36, 43);
@@ -598,4 +709,11 @@ radio p, checkbox p {
 .pflRelative .pflStat {
   margin: 0;
   color: rgb(168, 168, 168);
+}
+
+.pflRelative .pflInfo, .pflRelative .pflSince {
+  margin: 0 8px;
+  color: rgb(168, 168, 168);
+  float: left;
+  line-height: 24px;
 }
