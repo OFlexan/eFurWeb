@@ -1,5 +1,95 @@
 {
-  "new": {
+  "app": {
+    "template": {
+      "drawer": [
+        {
+          "tagName": "div",
+          "className": "appDrawer",
+          "reference": "drawer",
+          "children": [
+            {
+              "tagName": "div",
+              "className": "appDrawerUpper",
+              "children": [
+                {
+                  "tagName": "p",
+                  "innerText": "Login",
+                  "equals": "login",
+                  "reference": "login"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": ">[mode]< mode",
+                  "style": "border: 1px solid >[mode_color]<",
+                  "reference": "mode"
+                },
+                {
+                  "tagName": "hr",
+                  "className": "htmlSplitter"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "Following",
+                  "reference": "following"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "Feed",
+                  "reference": "feed"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "News",
+                  "reference": "news"
+                },
+                {
+                  "tagName": "hr",
+                  "className": "htmlSplitter"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "Notifications",
+                  "reference": "notifications"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "Messages",
+                  "reference": "messages"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "Discover",
+                  "reference": "discover"
+                }
+              ]
+            },
+            {
+              "tagName": "div",
+              "className": "appDrawerLower",
+              "children": [
+                {
+                  "tagName": "p",
+                  "innerText": "My profile",
+                  "reference": "profile"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "Settings",
+                  "reference": "settings"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "About & support",
+                  "reference": "about"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "feed": {
     "body": [
       {
         "tagName": "div",
@@ -30,7 +120,8 @@
                     {
                       "tagName": "p",
                       "className": "profileName",
-                      "innerText": ">[username]<"
+                      "innerText": ">[username]<",
+                      "reference": "profile_name"
                     },
                     {
                       "tagName": "p",
@@ -215,7 +306,8 @@
             {
               "tagName": "p",
               "className": "pollVotes",
-              "innerText": ">[poll_count]< votes"
+              "innerText": ">[poll_count]< votes",
+              "reference": "poll_count"
             }
           ]
         },
@@ -288,6 +380,10 @@
   },
   "post": {
     "body": [
+      {
+        "tagName": "div",
+        "reference": "drawer"
+      },
       {
         "tagName": "div",
         "className": "previewContainer",

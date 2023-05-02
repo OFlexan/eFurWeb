@@ -10,3 +10,12 @@ How to run:
 # Links
 [Docs](docs.md) - Contains a work-in-progress documentation of the functions  
 [ToDo list](todo.md) - Contains all the features that are planned to be added in the near future
+
+# Added features
+- View comments
+- NSFW mode *hehe*
+- Following tab
+- Feed tab
+- News tab
+- Profile tab `[PREVIEW]`
+- Desktop notifications (with exception of chat messages)

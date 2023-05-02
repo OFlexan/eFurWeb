@@ -256,6 +256,7 @@ button:disabled {
 
 .htmlHasHeader {
   margin-top: 68px;
+  height: calc(100% - 68px);
 }
 
 /*
@@ -307,6 +308,53 @@ button:disabled {
 .htmlMenuTitle {
   margin: 4px;
   font-size: 24px;
+}
+
+/*
+  app drawer
+*/
+.appDrawer {
+  font-size: 22px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: calc(100% - 64px);
+  background-color: rgb(23, 27, 32);
+  padding: 32px 3px;
+  width: 300px;
+}
+
+.appDrawer.padding {
+  top: 68px;
+  height: calc(100% - 132px);
+}
+
+.appDrawer p {
+  margin: 3px;
+  padding: 8px;
+  padding-left: 32px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.appDrawer p:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.appDrawer p.selected {
+  background-color: rgb(209, 136, 0);
+  color: black;
+}
+
+.appDrawer p.selected:hover {
+  background-color: rgb(230, 149, 0);
+}
+
+.appDrawer .appDrawerLower {
+  width: 100%;
+  position: absolute;
+  left: 0;
+  bottom: 32px;
 }
 
 /*
@@ -500,6 +548,13 @@ button:disabled {
   font-size: 22px;
 }
 
+.postPoll .pollResult {
+  float: right;
+  margin: 0;
+  line-height: 30px;
+  color: rgb(168, 168, 168);
+}
+
 .postPoll .pollSubmit {
   width: 100%;
   padding: 12px;
@@ -684,7 +739,7 @@ button:disabled {
   position: absolute;
   top: calc(30% + 55px);
   width: 100%;
-  height: calc(100% - (30% + 55px));
+  height: calc(70% - 55px);
 }
 
 .pflRelative .pflUsername {

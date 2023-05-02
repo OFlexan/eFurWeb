@@ -1099,7 +1099,12 @@ Check `a` to know if the user followed or unfollowed you.
 </table>
 
 ### Banned (100)
+Old:
 > System  
+> You got banned for **time**  
+> Reason: **reason**
+New:
+> eFur  
 > You got banned for **time**  
 > Reason: **reason**
 
@@ -1129,6 +1134,32 @@ Check `a` to know if the user followed or unfollowed you.
     <td>t</td>
     <td>Integer</td>
     <td>Type of notification, in this case 100</td>
+  </tr>
+</table>
+
+### Unbanned (101)
+> eFur  
+> You got unbanned
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>a</td>
+    <td>Boolean</td>
+    <td>Unknown as of right now, appears to be true</td>
+  </tr>
+  <tr>
+    <td>d</td>
+    <td>Integer</td>
+    <td>Timestamp for when you were initially going to be unbanned</td>
+  </tr>
+  <tr>
+    <td>t</td>
+    <td>Integer</td>
+    <td>Type of notification, in this case 101</td>
   </tr>
 </table>
 
