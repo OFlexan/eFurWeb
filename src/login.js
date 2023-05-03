@@ -1,7 +1,7 @@
 Parse.initialize("MiGt7yG9h5WAf7zXRsDHp");
 Parse.serverURL = "https://api.efur.app/parse";
 var r = Object.fromEntries(new URLSearchParams(location.search))["redirect"];
-if (Parse.User.current() != null) location.href = "./index.html" + (r ? "#" + r : "");
+if (Parse.User.current() != null && Parse.User.current().get("username").length != 25) location.href = "./index.html" + (r ? "#" + r : "");
 
 window.onload = function() {
   document.querySelector("button").onclick = async function() {

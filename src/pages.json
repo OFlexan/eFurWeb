@@ -19,7 +19,7 @@
                 },
                 {
                   "tagName": "p",
-                  "innerText": ">[mode]< mode",
+                  "innerText": "Switch to >[mode]<",
                   "style": "border: 1px solid >[mode_color]<",
                   "reference": "mode"
                 },

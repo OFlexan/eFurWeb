@@ -279,6 +279,11 @@ button:disabled {
   padding: 2px;
 }
 
+.htmlMenuTitle {
+  margin: 4px;
+  font-size: 24px;
+}
+
 .htmlMenu .htmlMenuItem {
   margin: 2px;
   padding: 12px;
@@ -303,11 +308,6 @@ button:disabled {
   margin: 0;
   display: inline;
   cursor: pointer;
-}
-
-.htmlMenuTitle {
-  margin: 4px;
-  font-size: 24px;
 }
 
 /*
