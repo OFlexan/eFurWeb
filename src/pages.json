@@ -345,8 +345,9 @@
               "tagName": "video",
               "className": "postMedia",
               "poster": ">[post_thumb_url]<",
-              "__controls": "",
-              "__loop": "",
+              "__controls": true,
+              "__loop": true,
+              "__oncontextmenu": "return false",
               "children": [
                 {
                   "tagName": "source",
