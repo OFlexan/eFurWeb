@@ -772,3 +772,66 @@ button:disabled {
   float: left;
   line-height: 24px;
 }
+
+/*
+  notification
+*/
+.notification {
+  background-color: rgb(31, 36, 43);
+  padding: 5px;
+  margin: 2px;
+  border-radius: 8px;
+  clear: both;
+  cursor: pointer;
+}
+/* left */
+.notification .notificationProfile {
+  width: 70px;
+  height: 70px;
+  border-radius: 16px;
+  object-fit: cover;
+  float: left;
+  user-select: none;
+}
+
+.notification .notificationFloat {
+  display: inline-block;
+  width: calc(100% - 280px); /* 100% - pfp width - 210px aka .notificationRight width */
+}
+
+.notification .notificationUsername {
+  width: fit-content;
+  user-select: none;
+}
+
+.notification .notificationUsername, .notification .notificationText {
+  margin: 0;
+  margin-left: 20px;
+  font-size: 26px;
+}
+
+.notification .notificationText {
+  color: rgb(168, 168, 168);
+}
+/* right */
+.notification .notificationRight {
+  float: right;
+  position: relative;
+}
+
+.notification .notificationTime {
+  position: absolute;
+  right: 160px;
+  line-height: 70px;
+  color: rgb(168, 168, 168);
+  user-select: none;
+}
+
+.notification .notificationPreview {
+  width: 140px;
+  height: 70px;
+  float: right;
+  border-radius: 12px;
+  object-fit: cover;
+  user-select: none;
+}

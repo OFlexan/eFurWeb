@@ -1,3 +1,8 @@
+# Outdated
+Alot of the functions described here are still working, but some have optional parameters that are not mentioned here.
+Furthermore, alot of the stuff isn't updated. For example, some of the notification messages are not up to date.
+I might update the documentation to be better in the future, but right now I'm working on the main app only.
+
 # Note
 - You are expected to know how to use the [Parse SDK](https://docs.parseplatform.org/js/guide/).
 - Every "you" or "you're" etc. references to the <a href="#user-authorized">logged in user</a>.

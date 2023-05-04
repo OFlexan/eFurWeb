@@ -383,10 +383,6 @@
     "body": [
       {
         "tagName": "div",
-        "reference": "drawer"
-      },
-      {
-        "tagName": "div",
         "className": "previewContainer",
         "reference": "container"
       },
@@ -616,6 +612,15 @@
             "innerText": "arrow_back"
           }
         ]
+      }
+    ]
+  },
+  "notifications": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "previewContainer",
+        "reference": "container"
       }
     ]
   }
