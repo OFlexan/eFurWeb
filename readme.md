@@ -11,5 +11,11 @@ How to run:
 [Docs](docs.md) - Contains a work-in-progress documentation of the functions  
 [ToDo list](todo.md) - Contains all the features that are planned to be added in the near future
 
-# Latest changes (5/4/2023)
-- Notifications tab (1/2)
+# Latest changes (5/5/2023 - MDY)
+:heavy_check_mark: Notifications tab  
+:heavy_check_mark: Scrollable chat  
+:heavy_check_mark: Send messages in chat  
+:heavy_check_mark: Add comments  
+:heavy_check_mark: About page  
+:heavy_check_mark: Better history  
+:heavy_check_mark: Better page management  

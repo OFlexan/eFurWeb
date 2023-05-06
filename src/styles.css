@@ -33,7 +33,7 @@ body, html {
 }
 /* center and limited size */
 .postContainer, .previewContainer {
-  width: 600px;
+  width: 600px;/*1*/
   height: 100%;
   position: absolute;
   left: 50%;
@@ -240,7 +240,7 @@ button:disabled {
 .htmlBack {
   font-size: 28px;
   margin: 0;
-  margin-left: calc(50% - 396px); /* 300px is half of the postContainer width + 20px for good padding + 28px of this width + 8px of post margin */
+  margin-left: calc(50% - 96px - 300px);/*2*/ /* 300px is half of the postContainer width + 20px for good padding + 28px of this width + 8px of post margin */
   float: left;
   line-height: 28px;
   cursor: pointer;
@@ -371,7 +371,7 @@ button:disabled {
   width: calc(200% - 80px);
 }
 
-.postHead .profilePic {
+.postHead .profilePic, .aboutContributor .profilePic {
   width: 50px;
   height: 50px;
   float: left;
@@ -381,14 +381,14 @@ button:disabled {
   cursor: pointer;
 }
 
-.postHead .profileName {
+.postHead .profileName, .aboutContributor .profileName {
   font-size: 26px;
   margin: 0;
   line-height: 30px;
   cursor: pointer;
 }
 
-.postHead .profileCats {
+.postHead .profileCats, .aboutContributor .contributorRole {
   font-size: 16px;
   margin: 0;
   line-height: 20px;
@@ -678,7 +678,7 @@ button:disabled {
   line-height: 24px;
 }
 
-.commentFoot .commentShare {
+.commentFoot .commentReply {
   margin: 0;
   margin-left: 48px;
   float: left;
@@ -834,4 +834,58 @@ button:disabled {
   border-radius: 12px;
   object-fit: cover;
   user-select: none;
+}
+
+/*
+  about page
+*/
+.about a {
+  color: rgb(255, 166, 0);
+}
+
+.aboutBigHeader, .aboutHeader {
+  margin-bottom: 0;
+  font-weight: 500;
+}
+
+.aboutHeader {
+  font-size: 30px;
+  font-weight: 400;
+}
+
+.aboutText {
+  margin: 0;
+}
+
+.aboutLogo {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.aboutCenter {
+  text-align: center;
+  margin: 0;
+}
+
+.aboutButton {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.aboutInfo {
+  color: rgb(168, 168, 168);
+  font-size: 16px;
+}
+
+.aboutTip {
+  color: rgb(104, 104, 104);
+  font-size: 12px;
+}
+
+.aboutContributor {
+  margin: 10px;
 }

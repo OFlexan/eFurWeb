@@ -115,7 +115,8 @@
                     {
                       "tagName": "img",
                       "className": "profilePic",
-                      "src": ">[pfp_url]<"
+                      "src": ">[pfp_url]<",
+                      "reference": "profile_picture"
                     },
                     {
                       "tagName": "p",
@@ -418,12 +419,14 @@
                 {
                   "tagName": "img",
                   "className": "profilePic",
-                  "src": ">[pfp_url]<"
+                  "src": ">[pfp_url]<",
+                  "reference": "profile_picture"
                 },
                 {
                   "tagName": "p",
                   "className": "profileName",
-                  "innerText": ">[username]<"
+                  "innerText": ">[username]<",
+                  "reference": "profile_name"
                 },
                 {
                   "tagName": "p",
@@ -472,9 +475,9 @@
                 },
                 {
                   "tagName": "p",
-                  "className": "commentShare androidIcon",
-                  "reference": "share",
-                  "innerText": "share"
+                  "className": "commentReply androidIcon",
+                  "reference": "reply",
+                  "innerText": "reply"
                 },
                 {
                   "tagName": "p",
@@ -621,6 +624,166 @@
         "tagName": "div",
         "className": "previewContainer",
         "reference": "container"
+      }
+    ]
+  },
+  "about": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "previewContainer about",
+        "children": [
+          {
+            "tagName": "h1",
+            "innerText": "About",
+            "className": "aboutBigHeader"
+          },
+          {
+            "tagName": "img",
+            "className": "aboutLogo",
+            "src": ">[src]<"
+          },
+          {
+            "tagName": "p",
+            "className": "aboutCenter",
+            "innerText": "Welcome to the eFur project!"
+          },
+          {
+            "tagName": "br"
+          },
+          {
+            "tagName": "p",
+            "className": "aboutCenter",
+            "innerText": "A social space to share and enjoy all things furry ~"
+          },
+          {
+            "tagName": "hr",
+            "className": "htmlSplitter"
+          },
+          {
+            "tagName": "h2",
+            "innerText": "Stats",
+            "className": "aboutHeader"
+          },
+          {
+            "tagName": "p",
+            "innerText": "Registered users:",
+            "className": "aboutText",
+            "reference": "users"
+          },
+          {
+            "tagName": "p",
+            "innerText": "Guests:",
+            "className": "aboutText",
+            "reference": "guests"
+          },
+          {
+            "tagName": "p",
+            "innerText": "Posts:",
+            "className": "aboutText",
+            "reference": "posts"
+          },
+          {
+            "tagName": "p",
+            "innerText": "Comments:",
+            "className": "aboutText",
+            "reference": "comments"
+          },
+          {
+            "tagName": "hr",
+            "className": "htmlSplitter"
+          },
+          {
+            "tagName": "h2",
+            "innerText": "Social",
+            "className": "aboutHeader"
+          },
+          {
+            "tagName": "p",
+            "innerText": "We have a Discord channel and a Telegram group! Join to chat with other users and moderators and get assistance with anything.",
+            "className": "aboutText"
+          },
+          {
+            "tagName": "p",
+            "innerHTML": "<a href=\">[discord]<\">Discord</a> | <a href=\">[telegram]<\">Telegram</a>",
+            "className": "aboutText"
+          },
+          {
+            "tagName": "hr",
+            "className": "htmlSplitter"
+          },
+          {
+            "tagName": "h2",
+            "innerText": "Feedback",
+            "className": "aboutHeader"
+          },
+          {
+            "tagName": "p",
+            "innerHTML": "Have feedback or suggestions to improve the Android app? Leave a rating in the Play store, send an email to <a href=\"mailto:feedback@efurry.net\">feedback@efurry.net</a>, or join the Discord and share your thoughts there!",
+            "className": "aboutText"
+          },
+          {
+            "tagName": "hr",
+            "className": "htmlSplitter"
+          },
+          {
+            "tagName": "h2",
+            "innerText": "Translate",
+            "className": "aboutHeader"
+          },
+          {
+            "tagName": "p",
+            "innerHTML": "Translation for web is not available yet. To help translate the Android app, <a href=\">[translation]<\">click here</a>",
+            "className": "aboutText"
+          },
+          {
+            "tagName": "hr",
+            "className": "htmlSplitter"
+          },
+          {
+            "tagName": "h2",
+            "innerText": "Contributors",
+            "className": "aboutHeader"
+          },
+          {
+            "tagName": "div",
+            "reference": "contributors"
+          },
+          {
+            "tagName": "p",
+            "innerText": "If you contribute, send @Dog a message!",
+            "className": "aboutTip"
+          },
+          {
+            "tagName": "hr",
+            "className": "htmlSplitter"
+          },
+          {
+            "tagName": "h2",
+            "innerText": "Support",
+            "className": "aboutHeader"
+          },
+          {
+            "tagName": "p",
+            "innerHTML": "Need to contact an admin or want help with the app? Send an email to <a href=\"mailto:support@efurry.net\">support@efurry.net</a> or click the button below to send a message.",
+            "className": "aboutText"
+          },
+          {
+            "tagName": "button",
+            "className": "aboutButton",
+            "innerText": "Request support",
+            "reference": "support"
+          },
+          {
+            "tagName": "hr",
+            "className": "htmlSplitter"
+          },
+          {
+            "tagName": "p",
+            "innerText": "Site version 1.0.0 | App version 1.20.1 (101) © eFur 2023 | All Rights Reserved",
+            "className": "aboutInfo aboutCenter"
+          }
+        ]
       }
     ]
   }

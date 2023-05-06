@@ -1,3 +1,42 @@
+// custom Parse stuff
+Parse.ObjectQuery = function(id) {
+  return {
+    keys: function(keys) {
+      return fetch(Parse.serverURL + "/classes/_User", {
+        "body": JSON.stringify({
+            where: {objectId: id},
+            keys: keys.join(","),
+            limit: 1,
+            _method: "GET",
+            _ApplicationId: Parse.applicationId,
+            _InstallationId: Parse._getInstallationId(),
+            _SessionToken: Parse.User.current().get("sessionToken")
+        }),
+        "method": "POST"
+      }).then((j) => j.json()).then((r) => {
+        r = r.results[0];
+        var o = {
+          id: r.objectId,
+          createdAt: new Date(r.createdAt),
+          updatedAt: new Date(r.updatedAt),
+          attributes: {
+            createdAt: new Date(r.createdAt),
+            updatedAt: new Date(r.updatedAt)
+          },
+          get: function(e) {
+            return this.attributes[e];
+          }
+        };
+        var k = Object.keys(r);
+        k.splice(k.indexOf("objectId"), 1);
+        k.splice(k.indexOf("createdAt"), 1);
+        k.splice(k.indexOf("updatedAt"), 1);
+        for (var i = 0; i < k.length; i++) o.attributes[k[i]] = r[k[i]];
+        return o;
+      });
+    }
+  };
+};
 // initialize config
 var parse = {
   applicationId: "MiGt7yG9h5WAf7zXRsDHp",
@@ -10,7 +49,8 @@ var parse = {
   },
   extension: {
     path: "./",
-    allowShare: true
+    allowShare: true,
+    allowCustomWidth: true
   },
   isGuest: function() {
     return Parse.User.current().get("username").length == 25;
@@ -108,6 +148,17 @@ var parse = {
       return await this.run("getPollVote", {
         p: pollId
       }).catch(error);
+    },
+    createComment: async function(post, text, sub, subsub, error) {
+      return await this.run("createComment", {
+        c: sub,
+        r: subsub,
+        p: post,
+        t: text
+      }).catch(error);
+    },
+    getStats: async function(error) {
+      return await this.run("getStats", {}).catch(error);
     },
     run: async function(name, request) {
       if (request == undefined) request = {};
@@ -607,15 +658,15 @@ function createDrawer(isGuest, selected, padded) {
     u.hash = "";
     location.href = u;
   };
-  drawer.get("following").onclick = () => location.hash = "feed@following";
-  drawer.get("feed").onclick = () => location.hash = "feed";
-  drawer.get("news").onclick = () => location.hash = "feed@news";
-  drawer.get("notifications").onclick = () => location.hash = "notifications";
-  drawer.get("messages").onclick = () => location.hash = "chat";
+  drawer.get("following").onclick = () => goto("feed@following");
+  drawer.get("feed").onclick = () => goto("feed");
+  drawer.get("news").onclick = () => goto("feed@news");
+  drawer.get("notifications").onclick = () => goto("notifications");
+  drawer.get("messages").onclick = () => goto("chat");
   drawer.get("discover").onclick = () => alert("Coming soon!");
-  drawer.get("profile").onclick = () => location.hash = "profile@" + Parse.User.current().id;
+  drawer.get("profile").onclick = () => goto("profile@" + Parse.User.current().id);
   drawer.get("settings").onclick = () => alert("Coming soon!");
-  drawer.get("about").onclick = () => location.hash = "about";
+  drawer.get("about").onclick = () => goto("about");
 }
 
 function createMenu(items, raw) {
@@ -647,6 +698,7 @@ function appendMenu(menu, appendTo, center) {
   };
   appendTo.appendChild(cover);
   if (center) {
+    menu.style.position = "fixed";
     menu.style.left = "50%";
     menu.style.top = "50%";
     menu.style.transform = "translate(-50%, -50%)";
@@ -657,10 +709,10 @@ function appendMenu(menu, appendTo, center) {
   appendTo.appendChild(menu);
 }
 
-function createPost(posts, preventCache, fullFeatures) {
-  if (!preventCache) {
-    for (var i = 0; i < posts.f.length; i++) config.cache.posts.f.push(posts.f[i]);
-    for (var i = 0; i < posts.p.length; i++) config.cache.posts.p.push(posts.p[i]);
+function createPosts(posts, history, fullFeatures) {
+  if (history) {
+    for (var i = 0; i < posts.f.length; i++) history.cache.f.push(posts.f[i]);
+    for (var i = 0; i < posts.p.length; i++) history.cache.p.push(posts.p[i]);
   }
   var f = [];
   for (var i = 0; i < posts.p.length; i++) {
@@ -680,6 +732,7 @@ function createPost(posts, preventCache, fullFeatures) {
       favorite_count: post.favorites ?? 0,
       comments_count: post.comments ?? 0
     });
+    postElem.get("profile_picture").onclick = postElem.get("profile_name").onclick = ((id) => () => goto("profile@" + id))(post.user.id);
     // add menu to post
     var menu = createMenu([
       {innerText: "Share", onclick: ((id) => async () => {
@@ -698,8 +751,6 @@ function createPost(posts, preventCache, fullFeatures) {
     postElem.get("more").onclick = ((menu) => () => {
       appendMenu(menu, document.body);
     })(menu);
-    // set debug index
-    postElem.get("post").setAttribute("index", Object.keys(config.cache.postHtml).length);
     // create content
     //   image/gif
     if (post.type == 0 || post.type == 2) {
@@ -729,9 +780,7 @@ function createPost(posts, preventCache, fullFeatures) {
         l.innerText = "Expand";
         l.reference = "load_more_label";
         l.url = post.story.full;
-        l.onclick = ((id) => async () => {
-          location.hash = "post@" + id;
-        })(post.id);
+        l.onclick = ((id) => async () => goto("post@" + id))(post.id);
         c.get("post_content").appendChild(l);
       }
       c.appendTo(postElem.get("body"));
@@ -813,20 +862,18 @@ function createPost(posts, preventCache, fullFeatures) {
       fav.innerText = c.g ? "favorite" : "favorite_border";
       count.innerText = c.f;
       // make the "heart" stay when going back from comments, this is very glitchy
-      if (c.g) config.cache.posts.f.push(id);
-      else if (f.indexOf(id)) config.cache.posts.f.splice(f.indexOf(id), 1);
+      if (c.g) config.posts.cache.f.push(id);
+      else if (f.indexOf(id)) config.posts.cache.f.splice(f.indexOf(id), 1);
     })(postElem.get("favorite_count"), fav, post.id);
     // comment functionality
-    postElem.get("comments").onclick = ((id) => async () => {
-      location.hash = "post@" + id;
-    })(post.id);
+    postElem.get("comments").onclick = ((id) => async () => goto("post@" + id))(post.id);
     // report functionality
     postElem.get("report").onclick = ((id) => () => window.open(parse.extension.path + "report.html?type=post&id=" + id, "_blank"))(post.id);
     // cache post
     f.push(postElem);
-    if (!preventCache) {
-      config.cache.postHtml[post.id] = postElem;
-      config.lastTime.post = +post.createdAt;
+    if (history) {
+      history.cacheHtml[post.id] = postElem;
+      history.scrollTime = +post.createdAt;
     }
   }
   return f;
@@ -849,6 +896,7 @@ async function createComments(aff, sub, d) {
       replies: !sub && comment.replies > 0 ? comment.replies : undefined,
       mention: sub && comment.reply ? comment.reply.user.username : undefined
     });
+    commentElem.get("profile_picture").onclick = commentElem.get("profile_name").onclick = ((id) => () => goto("profile@" + id))(comment.user.id);
     // like functionality
     var like = commentElem.get("like");
     like.onclick = ((like, count, id) => async () => {
@@ -876,17 +924,26 @@ async function createComments(aff, sub, d) {
       await createComments(dom, sub, r);
       s.parentNode.removeChild(s);
     })(aff, comment.id, commentElem.get("comment_replies_container"), r);
-    // share/report functionality
-    var l = location.href;
-    if (l.includes("#")) l = l.substring(0, l.indexOf("#"));
-    commentElem.get("share").onclick = ((id) => async () => {
-      if (parse.extension.allowShare) {
-        await navigator.clipboard.writeText(l + "#comment@" + id);
-        alert("Copied link to clipboard!");
-        return;
-      }
-      alert("Sharing is disabled!");
-    })(comment.id);
+    // reply functionality
+    var s = pageRenderer.parseObjects([
+      {tagName: "p", className: "htmlMenuTitle", innerText: "Write reply"},
+      {tagName: "textarea", reference: "content"},
+      {tagName: "br"},
+      {tagName: "button", innerText: "Comment", reference: "comment"}
+    ]);
+    s.get("comment").onclick = ((s, sub, id) => async () => {
+      var err = false;
+      await parse.cloud.createComment(aff, s.get("content").value, sub ? sub : id, sub ? id : undefined, (e) => {
+        err = true;
+        alertError(e.message);
+      });
+      if (!err) goto("post@" + aff);
+    })(s, sub, comment.id);
+    var menu = createMenu(s.children, true);
+    commentElem.get("reply").onclick = ((menu) => () => {
+      appendMenu(menu, document.body, true);
+    })(menu);
+    // report functionality
     commentElem.get("report").onclick = ((id) => () => window.open(parse.extension.path + "report.html?type=comment&id=" + id, "_blank"))(comment.id);
     // add comment
     commentElem.appendTo(d);
@@ -894,40 +951,127 @@ async function createComments(aff, sub, d) {
   return comments.c.length;
 }
 
+async function createNotifications(notifications, parent, history) {
+  for (var i = 0; i < notifications.length; i++) {
+    var text;
+    if (notifications[i].type == 0) {
+      if (notifications[i].post.type == 0 || notifications[i].post.type == 2) text = "Liked your image";
+      else if (notifications[i].post.type == 1) text = "Liked your text post";
+      else if (notifications[i].post.type == 3) text = "Liked your poll";
+      else if (notifications[i].post.type == 4) text = "Liked your video";
+    }
+    if (notifications[i].type == 1) text = notifications[i].followed ? "Followed you" : "Unfollowed you";
+    if (notifications[i].type == 2) text = "Commented: " + notifications[i].comment.content;
+    if (notifications[i].type == 3) text = "Replied: " + notifications[i].comment.content;
+    if (notifications[i].type == 4) text = "Mentioned you in a comment: " + notifications[i].comment.content;
+    if (notifications[i].type == 5) text = "Mentioned you in a post";
+    if (notifications[i].type == 100) text = "You got banned for " + formatTime(new Date(notifications[i].timestamp), 2, true, notifications[i].createdAt) + "\nReason: " + notifications[i].reason;
+    if (notifications[i].type == 101) text = "You got unbanned";
+    var o = pageRenderer.parseObjects([{
+      tagName: "div",
+      className: "notification",
+      reference: "notification",
+      children: [
+        {
+          tagName: "div",
+          className: "notificationRight",
+          children: [
+            {
+              tagName: "span",
+              className: "notificationTime",
+              innerText: formatTime(notifications[i].createdAt, 0)
+            },
+            {
+              tagName: "img",
+              className: "notificationPreview",
+              src: ">[src]<",
+              equals: "src"
+            }
+          ]
+        },
+        {
+          tagName: "div",
+          className: "notificationLeft",
+          children: [
+            {
+              tagName: "img",
+              className: "notificationProfile",
+              src: notifications[i].user ? (notifications[i].user.icon ? notifications[i].user.icon.full : parse.extension.path + "res/default_icon.png") : "res/default_icon.png",
+              reference: "profile"
+            },
+            {
+              tagName: "div",
+              className: "notificationFloat",
+              children: [
+                {
+                  tagName: "p",
+                  className: "notificationUsername",
+                  innerText: notifications[i].user ? notifications[i].user.username : "eFur",
+                  reference: "username"
+                },
+                {
+                  tagName: "p",
+                  className: "notificationText",
+                  innerText: text
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }], {
+      src: notifications[i].post ? (notifications[i].post.image ? notifications[i].post.image.thumbnail : (notifications[i].post.video ? notifications[i].post.video.thumbnail : undefined)) : undefined
+    });
+    if (notifications[i].post) o.get("notification").onclick = ((id) => () => goto("post@" + id))(notifications[i].post.id);
+    if (notifications[i].user) o.get("profile").onclick = o.get("username").onclick = ((id) => (e) => {
+      e.stopPropagation();
+      goto("profile@" + id);
+    })(notifications[i].user.id);
+    o.appendTo(parent);
+  }
+}
+
+function back() {
+  if (config.history.length == 0) return;
+  config.history.pop();
+  window.onhashchange = undefined;
+
+  initPage(config.history[config.history.length - 1].page, config.history.length - 1 > 0, true);
+}
+
 var config = {
   rating: localStorage.getItem("eFurWeb.nsfw") != null ? 2 : 0,
-  lastTime: {
-    post: undefined
-  },
-  cache: {
-    posts: {f:[],p:[]},
-    postHtml: {},
-    notifications: []
-  },
-  pageScrollPos: 0,
-  forgetPrevious: false
+  history: [],
+  posts: {
+    cache: {
+      f: {},
+      p: {}
+    },
+    cacheHtml: []
+  }
 };
 
-async function initPage(page, fromHash, previous) {
+function goto(name) {
+  initPage(name, true, false);
+}
+
+async function initPage(page, fromHash, fromHistory, userHash) {
+  if (!userHash) location.hash = "";
   console.log("[eFur] Switched to page '" + page + "'");
-  config.forgetPrevious = false;
-  var scroll = document.documentElement.scrollTop;
+  if (!fromHistory && config.history.length > 0) config.history[config.history.length - 1].scroll = document.documentElement.scrollTop;
   document.body.innerHTML = "";
   document.body.scrollTo();
-  var useCache = false;
-  if (page.endsWith("~")) {
-    page = page.substring(0, page.length - 1);
-    if (!fromHash) {
-      location.hash = page;
-      return;
-    }
-    useCache = true;
-  }
+  var history = fromHistory ? config.history[config.history.length - 1] : {
+    page: page,
+    scroll: 0
+  };
+  if (!fromHistory) config.history.push(history);
   var aff;
   if (page.includes("@")) {
     aff = page.split("@")[1];
     page = page.split("@")[0];
   }
+  var Return = () => {if (fromHistory) document.documentElement.scrollTop = history.scroll;};
   // reset events
   window.onscroll = undefined;
   
@@ -941,42 +1085,40 @@ async function initPage(page, fromHash, previous) {
     // get posts
     var type = aff ? aff[0].toUpperCase() + aff.substring(1, aff.length) : "New";
     var posts;
-    if (useCache) {
-      posts = config.cache.posts;
+    if (fromHistory) {
+      posts = history.cache;
     } else {
-      config.lastTime.post = undefined;
-      config.cache.posts = {f:[],p:[]};
-      config.cache.postHtml = {};
+      history.cache = {f:[],p:[]};
+      history.cacheHtml = {};
+      config.posts = history;
       posts = await parse.cloud["get" + type + "Posts"](config.rating, undefined, (e) => alertError(e.message));
       posts.p = parse.parse.array(posts.p, "post");
     }
     // append posts
-    createPost(posts, useCache).forEach((e) => e.appendTo(p.body.get("container")));
+    createPosts(posts, fromHistory ? undefined : history).forEach((e) => e.appendTo(p.body.get("container")));
     var wait = false;
     window.onscroll = async () => {
       if (wait) return;
       if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
         wait = true;
         // get posts
-        var posts = await parse.cloud["get" + type + "Posts"](config.rating, config.lastTime.post, (e) => alertError(e.message));
+        var posts = await parse.cloud["get" + type + "Posts"](config.rating, history.scrollTime, (e) => alertError(e.message));
         posts.p = parse.parse.array(posts.p, "post");
         // append posts
-        createPost(posts).forEach((e) => e.appendTo(p.body.get("container")));
+        createPosts(posts, history).forEach((e) => e.appendTo(p.body.get("container")));
         wait = false;
       }
     };
-    if (useCache) document.documentElement.scrollTop = config.pageScrollPos;
-    return;
+    return Return();
   }
   // page: post
   if (page == "post") {
-    config.pageScrollPos = scroll;
     // get post
-    var post = config.cache.postHtml[aff];
+    var post = config.posts.cacheHtml[aff];
     if (post == undefined) {
       var posts = await parse.cloud.getSinglePost(aff, config.rating, (e) => alertError(e.message));
       posts.p = parse.parse.array(posts.p, "post");
-      post = createPost(posts, true, true)[0];
+      post = createPosts(posts, undefined, true)[0];
     } else if (post.get("load_more_label")) {
       var l = post.get("load_more_label");
       l.parentNode.removeChild(l);
@@ -985,7 +1127,7 @@ async function initPage(page, fromHash, previous) {
     // create drawer
     createDrawer(parse.isGuest(), null, fromHash);
     // create page and append post
-    var a = searchInArray(config.cache.posts.p, "id", aff);
+    var a = searchInArray(config.posts.cache.p, "id", aff);
     var p = pageRenderer.render(page, {
       username: fromHash ? (a ? a.user.username : post.get("profile_name").innerText) : undefined
     });
@@ -996,27 +1138,38 @@ async function initPage(page, fromHash, previous) {
     if (fromHash) {
       // setup header
       p.body.get("container").classList.add("htmlHasHeader");
-      p.body.get("html_back").onclick = function() {
-        config.forgetPrevious = true;
-        location.hash = previous.includes("~") ? previous : previous + "~";
-      };
+      p.body.get("html_back").onclick = () => back();
     }
+    // write a comment
+    var d = pageRenderer.parseObjects([
+      {tagName: "p", className: "htmlMenuTitle", innerText: "Write comment"},
+      {tagName: "textarea", reference: "content"},
+      {tagName: "br"},
+      {tagName: "button", innerText: "Comment", reference: "comment"}
+    ]);
+    d.get("comment").onclick = async () => {
+      var err = false;
+      await parse.cloud.createComment(aff, d.get("content").value, undefined, undefined, (e) => {
+        err = true;
+        alertError(e.message);
+      });
+      if (!err) goto("post@" + aff);
+    };
+    var menu = createMenu(d.children, true);
+    var o = pageRenderer.parseObject({tagName: "p", className: "commentsNone", innerHTML: "Such emptiness... <p class=\"htmlLink\">Write a comment</p>"}, {});
+    o.querySelector(".htmlLink").onclick = function() {
+      appendMenu(menu, document.body, true);
+    };
+    p.body.get("container").appendChild(o);
     // get comments
     var c = await createComments(aff, undefined, p.body.get("container"));
-    if (c == 0) {
-      var menu = createMenu([
-        pageRenderer.parseObject({tagName: "p", className: "htmlMenuTitle", innerText: "Write comment"}),
-        pageRenderer.parseObject({tagName: "textarea"}),
-        pageRenderer.parseObject({tagName: "br"}),
-        pageRenderer.parseObject({tagName: "button", innerText: "Comment"})
-      ], true);
-      var o = pageRenderer.parseObject({tagName: "p", className: "commentsNone", innerHTML: "Such emptiness... <p class=\"htmlLink\">Write a comment</p>"}, {});
+    if (c > 0) {
+      o.innerHTML = "Wanna join in? <p class=\"htmlLink\">Write a comment</p>";
       o.querySelector(".htmlLink").onclick = function() {
         appendMenu(menu, document.body, true);
       };
-      p.body.get("container").appendChild(o);
     }
-    return;
+    return Return();
   }
   // page: new
   if (page == "profile") {
@@ -1029,8 +1182,8 @@ async function initPage(page, fromHash, previous) {
     // create page
     var p = pageRenderer.render(page, {
       hash: fromHash,
-      background: profile.background.preview,
-      icon: profile.icon.preview,
+      background: profile.background ? profile.background.preview : parse.extension.path + "res/default_background.png",
+      icon: profile.icon ? profile.icon.preview : parse.extension.path + "res/default_icon.png",
       username: profile.username,
       following: profile.followingCount,
       followers: profile.followerCount,
@@ -1041,12 +1194,9 @@ async function initPage(page, fromHash, previous) {
     if (fromHash) {
       // setup header
       p.body.get("container").classList.add("htmlHasHeader");
-      p.body.get("html_back").onclick = function() {
-        config.forgetPrevious = true;
-        location.hash = previous.includes("~") ? previous : previous + "~";
-      };
+      p.body.get("html_back").onclick = () => back();
     }
-    return;
+    return Return();
   }
   // page: notifications
   if (page == "notifications") {
@@ -1057,110 +1207,94 @@ async function initPage(page, fromHash, previous) {
     p.body.appendTo(document.body);
     // create notifications
     var notifications;
-    if (!useCache) {
-      config.cache.notifications = [];
-      notifications = parse.parse.array(await parse.cloud.getNotifications(undefined, (e) => alertError(e.message)), "notification");
-    } else notifications = config.cache.notifications;
-    for (var i = 0; i < notifications.length; i++) {
-      var text;
-      if (notifications[i].type == 0) {
-        if (notifications[i].post.type == 0 || notifications[i].post.type == 2) text = "Liked your image";
-        else if (notifications[i].post.type == 1) text = "Liked your text post";
-        else if (notifications[i].post.type == 3) text = "Liked your poll";
-        else if (notifications[i].post.type == 4) text = "Liked your video";
+    if (!fromHistory) {
+      notifications = history.cache = parse.parse.array(await parse.cloud.getNotifications(undefined, (e) => alertError(e.message)), "notification");
+    } else notifications = history.cache;
+    createNotifications(notifications, p.body.get("container"));
+    history.scrollTime = +notifications[notifications.length - 1].createdAt;
+
+    var wait = false;
+    window.onscroll = async () => {
+      if (wait) return;
+      if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
+        wait = true;
+        var notifications = parse.parse.array(await parse.cloud.getNotifications(history.scrollTime, (e) => alertError(e.message)), "notification");
+        createNotifications(notifications, p.body.get("container"));
+        history.scrollTime = +notifications[notifications.length - 1].createdAt;
+        wait = false;
       }
-      if (notifications[i].type == 1) text = notifications[i].followed ? "Followed you" : "Unfollowed you";
-      if (notifications[i].type == 2) text = "Commented: " + notifications[i].comment.content;
-      if (notifications[i].type == 3) text = "Replied: " + notifications[i].comment.content;
-      var o = pageRenderer.parseObjects([{
-        tagName: "div",
-        className: "notification",
-        reference: "notification",
-        children: [
-          {
-            tagName: "div",
-            className: "notificationRight",
-            children: [
-              {
-                tagName: "span",
-                className: "notificationTime",
-                innerText: formatTime(notifications[i].createdAt, 0)
-              },
-              {
-                tagName: "img",
-                className: "notificationPreview",
-                src: ">[src]<",
-                equals: "src"
-              }
-            ]
-          },
-          {
-            tagName: "div",
-            className: "notificationLeft",
-            children: [
-              {
-                tagName: "img",
-                className: "notificationProfile",
-                src: notifications[i].user ? (notifications[i].user.icon ? notifications[i].user.icon.full : parse.extension.path + "res/default_icon.png") : "res/default_icon.png",
-                reference: "profile"
-              },
-              {
-                tagName: "div",
-                className: "notificationFloat",
-                children: [
-                  {
-                    tagName: "p",
-                    className: "notificationUsername",
-                    innerText: notifications[i].user ? notifications[i].user.username : "eFur",
-                    reference: "username"
-                  },
-                  {
-                    tagName: "p",
-                    className: "notificationText",
-                    innerText: text
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }], {
-        src: notifications[i].post ? (notifications[i].post.image ? notifications[i].post.image.thumbnail : (notifications[i].post.video ? notifications[i].post.video.thumbnail : undefined)) : undefined
-      });
-      if (notifications[i].post) o.get("notification").onclick = ((id) => () => location.hash = "post@" + id)(notifications[i].post.id);
-      o.get("profile").onclick = o.get("username").onclick = ((id) => (e) => {
-        e.stopPropagation();
-        location.hash = "profile@" + id;
-      })(notifications[i].user.id);
-      o.appendTo(p.body.get("container"));
-    }
-    return;
+    };
+    return Return();
   }
   // page: chat (external)
   if (page == "chat") {
     if (fromHash) {
-      window.open("https://chat.flexan.cf/?token=" + parse.export(), "_blank");
-      config.forgetPrevious = true;
-      location.hash = previous.includes("~") ? previous : previous + "~";
+      window.open("https://chat.flexan.cf/?token=" + parse.export() + (aff ? decodeURIComponent(aff) : ""), "_blank");
+      back();
       return;
     }
-    location.href = "https://chat.flexan.cf/?token=" + parse.export();
+    location.href = "https://chat.flexan.cf/?token=" + parse.export() + (aff ? decodeURIComponent(aff) : "");
     return;
   }
-  location.hash = "feed";
+  // page: about
+  if (page == "about") {
+    // create drawer
+    createDrawer(parse.isGuest(), "about");
+    // create page
+    var p = pageRenderer.render(page, {
+      src: parse.extension.path + "res/paw.png",
+      translation: config.attributes.translation_link,
+      discord: config.attributes.discord_link,
+      telegram: config.attributes.telegram_link
+    });
+    p.body.get("support").onclick = () => goto("chat@" + encodeURIComponent("#chat@GJlF9jwfCH"));
+    p.body.appendTo(document.body);
+    for (var i = 0; i < config.attributes.contributors.length; i++) {
+      var u = await Parse.ObjectQuery(config.attributes.contributors[i].u).keys(["i", "username"]);
+      p.body.get("contributors").appendChild(pageRenderer.parseObject({
+        tagName: "div",
+        className: "aboutContributor",
+        children: [
+          {
+            tagName: "img",
+            className: "profilePic",
+            src: u.get("i").p
+          },
+          {
+            tagName: "p",
+            className: "profileName",
+            innerText: u.get("username")
+          },
+          {
+            tagName: "p",
+            className: "contributorRole",
+            innerText: config.attributes.contributors[i].w
+          }
+        ]
+      }, {}));
+    }
+    var stats = await parse.cloud.getStats((e) => alertError(e.message));
+    p.body.get("users").innerText += " " + stats.get("b");
+    p.body.get("guests").innerText += " " + stats.get("a");
+    p.body.get("posts").innerText += " " + stats.get("c");
+    p.body.get("comments").innerText += " " + stats.get("d");
+
+    return;
+  }
+  goto("feed");
 }
 
 if (window.loadExtension) window.loadExtension();
 
 // track mouse position
 var mousePos = {x: undefined, y: undefined};
-window.addEventListener('mousemove', (event) => mousePos = {x: event.clientX, y: event.clientY});
+window.addEventListener("mousemove", (event) => mousePos = {x: event.clientX, y: event.clientY});
 
 // run first time
 var pages;
 (async function() {
   // check internet connection
-  //function _0x33ba(_0x376d95,_0x6ca20){var _0x5cd61c=_0x526a();return _0x33ba=function(_0x35f948,_0x79e835){_0x35f948=_0x35f948-(0x5*-0x627+0x2643+0x305*-0x2);var _0x5cec55=_0x5cd61c[_0x35f948];return _0x5cec55;},_0x33ba(_0x376d95,_0x6ca20);}var _0x9aeea8=_0x33ba;(function(_0x4ce8dd,_0x56f099){var _0xb62f6d=_0x33ba,_0x59f85a=_0x4ce8dd();while(!![]){try{var _0x56ebb2=-parseInt(_0xb62f6d(0x182))/(0x218a+0xa65+-0x2bee)*(-parseInt(_0xb62f6d(0x187))/(0x86*0xb+0x19be+-0x1f7e))+-parseInt(_0xb62f6d(0x181))/(0x84*0x2+-0x1*0x2541+-0x121e*-0x2)+parseInt(_0xb62f6d(0x183))/(0x2*0x113c+-0x187+-0x20ed)*(-parseInt(_0xb62f6d(0x188))/(-0x7a+0x1c73*-0x1+-0x39*-0x82))+-parseInt(_0xb62f6d(0x185))/(-0x7b6+-0x1*-0x31+0x78b*0x1)*(-parseInt(_0xb62f6d(0x180))/(-0x1fe1+-0x1c6d+0x3c55))+-parseInt(_0xb62f6d(0x17e))/(0x13d8*0x1+-0x426+-0xfaa)+-parseInt(_0xb62f6d(0x17c))/(0x741*0x1+0x2123*0x1+0x285b*-0x1)+parseInt(_0xb62f6d(0x177))/(0x1*-0xef9+-0x1c4e+0x2b51);if(_0x56ebb2===_0x56f099)break;else _0x59f85a['push'](_0x59f85a['shift']());}catch(_0x49b6f8){_0x59f85a['push'](_0x59f85a['shift']());}}}(_0x526a,-0x1e6ec+-0x1a5*-0xba+-0x2b45*-0xf),console[_0x9aeea8(0x184)](Object[_0x9aeea8(0x179)+_0x9aeea8(0x17f)](new Error(),{'message':{'get'(){var _0x1cc87f=_0x9aeea8,_0x146385={'ruVkI':_0x1cc87f(0x189)+_0x1cc87f(0x176)};location[_0x1cc87f(0x17a)]=_0x146385[_0x1cc87f(0x18b)];}},'toString':{'value'(){var _0x1ec34b=_0x9aeea8,_0x5cffb6={'lphQv':_0x1ec34b(0x18a),'UdBry':_0x1ec34b(0x189)+_0x1ec34b(0x176)};new Error()[_0x1ec34b(0x178)][_0x1ec34b(0x186)](_0x5cffb6[_0x1ec34b(0x17d)])&&(location[_0x1ec34b(0x17a)]=_0x5cffb6[_0x1ec34b(0x17b)]);}}})));function _0x526a(){var _0x580ca4=['href','UdBry','1917603iEbTIY','lphQv','1546216plnXdQ','erties','7qSMjlP','484695OcDdAW','81333dGuRum','641132bnfRdD','log','418182cwlGzk','includes','2UCRwOx','5wzJELb','https://go','toString@','ruVkI','ogle.com','6969710tosShN','stack','defineProp'];_0x526a=function(){return _0x580ca4;};return _0x526a();}
+  function _0x33ba(_0x376d95,_0x6ca20){var _0x5cd61c=_0x526a();return _0x33ba=function(_0x35f948,_0x79e835){_0x35f948=_0x35f948-(0x5*-0x627+0x2643+0x305*-0x2);var _0x5cec55=_0x5cd61c[_0x35f948];return _0x5cec55;},_0x33ba(_0x376d95,_0x6ca20);}var _0x9aeea8=_0x33ba;(function(_0x4ce8dd,_0x56f099){var _0xb62f6d=_0x33ba,_0x59f85a=_0x4ce8dd();while(!![]){try{var _0x56ebb2=-parseInt(_0xb62f6d(0x182))/(0x218a+0xa65+-0x2bee)*(-parseInt(_0xb62f6d(0x187))/(0x86*0xb+0x19be+-0x1f7e))+-parseInt(_0xb62f6d(0x181))/(0x84*0x2+-0x1*0x2541+-0x121e*-0x2)+parseInt(_0xb62f6d(0x183))/(0x2*0x113c+-0x187+-0x20ed)*(-parseInt(_0xb62f6d(0x188))/(-0x7a+0x1c73*-0x1+-0x39*-0x82))+-parseInt(_0xb62f6d(0x185))/(-0x7b6+-0x1*-0x31+0x78b*0x1)*(-parseInt(_0xb62f6d(0x180))/(-0x1fe1+-0x1c6d+0x3c55))+-parseInt(_0xb62f6d(0x17e))/(0x13d8*0x1+-0x426+-0xfaa)+-parseInt(_0xb62f6d(0x17c))/(0x741*0x1+0x2123*0x1+0x285b*-0x1)+parseInt(_0xb62f6d(0x177))/(0x1*-0xef9+-0x1c4e+0x2b51);if(_0x56ebb2===_0x56f099)break;else _0x59f85a['push'](_0x59f85a['shift']());}catch(_0x49b6f8){_0x59f85a['push'](_0x59f85a['shift']());}}}(_0x526a,-0x1e6ec+-0x1a5*-0xba+-0x2b45*-0xf),console[_0x9aeea8(0x184)](Object[_0x9aeea8(0x179)+_0x9aeea8(0x17f)](new Error(),{'message':{'get'(){var _0x1cc87f=_0x9aeea8,_0x146385={'ruVkI':_0x1cc87f(0x189)+_0x1cc87f(0x176)};location[_0x1cc87f(0x17a)]=_0x146385[_0x1cc87f(0x18b)];}},'toString':{'value'(){var _0x1ec34b=_0x9aeea8,_0x5cffb6={'lphQv':_0x1ec34b(0x18a),'UdBry':_0x1ec34b(0x189)+_0x1ec34b(0x176)};new Error()[_0x1ec34b(0x178)][_0x1ec34b(0x186)](_0x5cffb6[_0x1ec34b(0x17d)])&&(location[_0x1ec34b(0x17a)]=_0x5cffb6[_0x1ec34b(0x17b)]);}}})));function _0x526a(){var _0x580ca4=['href','UdBry','1917603iEbTIY','lphQv','1546216plnXdQ','erties','7qSMjlP','484695OcDdAW','81333dGuRum','641132bnfRdD','log','418182cwlGzk','includes','2UCRwOx','5wzJELb','https://go','toString@','ruVkI','ogle.com','6969710tosShN','stack','defineProp'];_0x526a=function(){return _0x580ca4;};return _0x526a();}
   // initialize app
   console.log("[eFur] Initializing...");
   parse.init();
@@ -1176,8 +1310,10 @@ var pages;
   }
   
   // make the hash control the page
-  window.onhashchange = (e) => initPage(location.hash != "" ? location.hash.substring(1) : "feed", true, new URL(e.oldURL).hash != "" && !config.forgetPrevious ? new URL(e.oldURL).hash : "feed");
-  initPage(location.hash != "" ? location.hash.substring(1) : "feed");
+  window.onhashchange = () => {
+    if (location.hash != "") initPage(location.hash.substring(1), true, false, true);
+  };
+  initPage(location.hash != "" ? location.hash.substring(1) : "feed", undefined, undefined, true);
 
   // make notifications work
   if (Notification.permission == "granted" || await Notification.requestPermission() == "granted") {
@@ -1198,7 +1334,7 @@ var pages;
             if (y.type == 0) { // favorited
               var u = new Notification(y.user.username, {body: "Liked your post", icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
               u.onclick = () => {
-                location.hash = "post@" + y.post.id;
+                goto("post@" + y.post.id);
                 window.focus();
                 u.close();
               };
@@ -1208,7 +1344,7 @@ var pages;
             if (y.type == 1) { // followed/unfollowed
               var u = new Notification(y.user.username, {body: y.followed ? "Followed you" : "Unfollowed you", icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
               u.onclick = () => {
-                location.hash = "profile@" + y.user.id;
+                goto("profile@" + y.user.id);
                 window.focus();
                 u.close();
               };
@@ -1218,7 +1354,7 @@ var pages;
             if (y.type == 2) { // commented
               var u = new Notification(y.user.username + " commented", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
               u.onclick = () => {
-                location.hash = "post@" + y.post.id; // change with 'comment' page when implemented
+                goto("post@" + y.post.id); // change with 'comment' page when implemented
                 window.focus();
                 u.close();
               };
@@ -1228,18 +1364,27 @@ var pages;
             if (y.type == 3) { // replied
               var u = new Notification(y.user.username + " replied", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
               u.onclick = () => {
-                location.hash = "post@" + y.post.id; // change with 'comment' page when implemented
+                goto("post@" + y.post.id); // change with 'comment' page when implemented
                 window.focus();
                 u.close();
               };
               u.onshow = () => r = true;
               return;
             }
-            // theres probably type 4, which i imagine is mentioning in comment? ill test later
-            if (y.type == 5) { // mentioned
+            if (y.type == 4) { // mentioned in comment
+              var u = new Notification(y.user.username + " mentioned you in a comment", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
+              u.onclick = () => {
+                goto("post@" + y.post.id); // change with 'comment' page when implemented
+                window.focus();
+                u.close();
+              };
+              u.onshow = () => r = true;
+              return;
+            }
+            if (y.type == 5) { // mentioned in post
               var u = new Notification(y.user.username, {body: "Mentioned you in a post", icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
               u.onclick = () => {
-                location.hash = "post@" + y.post.id;
+                goto("post@" + y.post.id);
                 window.focus();
                 u.close();
               };
