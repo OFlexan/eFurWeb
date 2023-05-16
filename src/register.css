@@ -1,6 +1,7 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   text-align: center;
+  color: white;
 }
 
 .background {
@@ -105,4 +106,83 @@ hr {
   bottom: 0;
   margin: 0;
   color: white;
+}
+
+/*
+  radio buttons and checkboxes (taken straight from styles.css)
+*/
+radio, checkbox {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+  font-size: 18px;
+  margin: 4px 0;
+}
+
+radio::before, checkbox::before {
+  content: "";
+  float: left;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  border: 3px solid rgb(168, 168, 168);
+  border-radius: 50%;
+}
+
+checkbox::before {
+  border-radius: 4px;
+}
+
+radio.checked::before, checkbox.checked::before {
+  border: 3px solid rgb(255, 166, 0);
+}
+
+radio p::before, checkbox p::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
+  background-color: rgb(168, 168, 168);
+  transform: translate(-50%, 7px);
+  animation: radioPopOut 100ms;
+  animation-fill-mode: forwards;
+}
+
+radio p::before {
+  border-radius: 50%;
+}
+
+radio.checked p::before, checkbox.checked p::before {
+  background-color: rgb(255, 166, 0);
+  animation: radioPopIn 450ms;
+}
+
+radio p, checkbox p {
+  float: left;
+  margin: 0;
+  line-height: 30px;
+}
+
+@keyframes radioPopIn {
+  0% {
+    transform: translate(-50%, 7px) scale(0);
+  }
+  60% {
+    transform: translate(-50%, 7px) scale(1.2);
+  }
+  100% {
+    transform: translate(-50%, 7px) scale(1);
+  }
+}
+
+@keyframes radioPopOut {
+  0% {
+    transform: translate(-50%, 7px) scale(1);
+  }
+  100% {
+    transform: translate(-50%, 7px) scale(0);
+  }
 }

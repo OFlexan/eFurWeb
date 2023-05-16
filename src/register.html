@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register - eFur</title>
+    <link rel="stylesheet" href="./register.css">
+    <script src="./lib/parse.js"></script>
+    <script src="./register.js"></script>
+  </head>
+  <body>
+    <!-- just a temporary image rn -->
+    <img src="./res/background.png" class="background">
+    <div class="cover"></div>
+    <div class="form">
+      <img src="./res/logo.png">
+      <p class="error"></p>
+      <input type="email" placeholder="Email">
+      <br>
+      <input type="password" placeholder="Password">
+      <br>
+      <checkbox id="terms"><p>I agree to the <a href="https://efur.app/terms-of-service/" target="_blank">Terms of Service</a></p></checkbox>
+      <br>
+      <checkbox id="privacy"><p>I agree to the <a href="https://efur.app/privacy-policy/" target="_blank">Privacy Policy</a></p></checkbox>
+      <br>
+      <checkbox id="age"><p>I am 13 years or older</a></p></checkbox>
+      <br>
+      <button>Register</button>
+      <hr>
+      <a href="./login.html">Login instead</a>
+    </div>
+  </body>
+</html>

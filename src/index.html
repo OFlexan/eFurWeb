@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>eFur</title>
     <link rel="stylesheet" href="./styles.css">
+    <script src="./lib/dompurify.js"></script>
+    <script src="./lib/marked.js"></script>
     <script src="./lib/parse.js"></script>
     <script src="./app.js" defer></script>
   </head>
-  <body>
+  <body style="--post-width:600px">
     <!--Loading screen-->
-    <p>Loading...</p>
+    <img src="./res/paw.png" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 200px;">
+    <a style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: rgb(0, 162, 255);" href="https://status.efurry.net">Server status</a>
   </body>
 </html>

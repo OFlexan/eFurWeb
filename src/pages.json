@@ -411,6 +411,7 @@
         {
           "tagName": "div",
           "className": "comment",
+          "reference": "comment",
           "children": [
             {
               "tagName": "div",
@@ -460,6 +461,7 @@
             {
               "tagName": "div",
               "className": "commentFoot",
+              "reference": "foot",
               "children": [
                 {
                   "tagName": "p",
@@ -598,6 +600,51 @@
                 "tagName": "p",
                 "className": "pflSince",
                 "innerText": "MEMBER FOR >[since]<"
+              },
+              {
+                "tagName": "br"
+              },
+              {
+                "tagName": "tabs",
+                "reference": "tabs",
+                "children": [
+                  {
+                    "tagName": "tab",
+                    "className": "selected",
+                    "innerText": "About",
+                    "reference": "tab_about"
+                  },
+                  {
+                    "tagName": "tab",
+                    "innerText": "Gallery",
+                    "reference": "tab_gallery"
+                  },
+                  {
+                    "tagName": "tab",
+                    "innerText": "Favourites",
+                    "reference": "tab_favourites"
+                  },
+                  {
+                    "tagName": "tab",
+                    "innerText": "Comments",
+                    "reference": "tab_comments"
+                  },
+                  {
+                    "tagName": "tab",
+                    "innerText": "Followers",
+                    "reference": "tab_followers"
+                  },
+                  {
+                    "tagName": "tab",
+                    "innerText": "Following",
+                    "reference": "tab_following"
+                  }
+                ]
+              },
+              {
+                "tagName": "div",
+                "className": "pflInfoPage",
+                "reference": "info_page"
               }
             ]
           }
@@ -616,7 +663,53 @@
           }
         ]
       }
-    ]
+    ],
+    "template": {
+      "about": [
+        {
+          "tagName": "p",
+          "className": "pflSubAboutTitle",
+          "innerText": "Presentation"
+        },
+        {
+          "tagName": "div",
+          "className": "pflSubAboutMarkdown",
+          "style": "text-align:center",
+          "reference": "presentation"
+        },
+        {
+          "tagName": "p",
+          "className": "pflSubAboutTitle",
+          "innerText": "Stats"
+        },
+        {
+          "tagName": "div",
+          "className": "pflSubAboutMarkdown",
+          "reference": "stats"
+        }
+      ],
+      "gallery": [
+        {
+          "tagName": "div",
+          "className": "pflSubPostView",
+          "reference": "view"
+        }
+      ],
+      "comments": [
+        {
+          "tagName": "div",
+          "className": "pflSubCommentsView",
+          "reference": "view"
+        }
+      ],
+      "follow": [
+        {
+          "tagName": "div",
+          "className": "pflSubFollowView",
+          "reference": "view"
+        }
+      ]
+    }
   },
   "notifications": {
     "body": [
@@ -624,6 +717,37 @@
         "tagName": "div",
         "className": "previewContainer",
         "reference": "container"
+      }
+    ]
+  },
+  "settings": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "previewContainer settings",
+        "children": [
+          {
+            "tagName": "div",
+            "className": "settingsItem",
+            "children": [
+              {
+                "tagName": "p",
+                "innerText": "Preview features"
+              },
+              {
+                "tagName": "switch",
+                "className": "notext",
+                "reference": "preview_features"
+              }
+            ]
+          },
+          {
+            "tagName": "button",
+            "className": "settingsButton",
+            "innerText": "Log out",
+            "reference": "logout"
+          }
+        ]
       }
     ]
   },
@@ -780,7 +904,7 @@
           },
           {
             "tagName": "p",
-            "innerText": "Site version 1.0.0 | App version 1.20.1 (101) © eFur 2023 | All Rights Reserved",
+            "innerText": "Site version 1.0.0 | App version 1.21.1 (104) © eFur 2023 | All Rights Reserved",
             "className": "aboutInfo aboutCenter"
           }
         ]

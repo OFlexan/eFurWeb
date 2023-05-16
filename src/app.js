@@ -55,8 +55,18 @@ var parse = {
   isGuest: function() {
     return Parse.User.current().get("username").length == 25;
   },
+  requireAccount: function() {
+    if (this.isGuest()) {
+      alertError("An account is needed to perform this action!", {
+        text: "Login",
+        url: this.extension.path + "login.html"
+      });
+      return true;
+    }
+    return false;
+  },
   cloud: {
-    version: 101,
+    version: 104,
     registerUser: async function(allowedNsfw, email, password, username, error) {
       return await this.run("registerUser", {
         a: allowedNsfw ? 1 : 0,
@@ -159,6 +169,38 @@ var parse = {
     },
     getStats: async function(error) {
       return await this.run("getStats", {}).catch(error);
+    },
+    getUserProfileAbout: async function(userId, error) {
+      return await this.run("getUserProfileAbout", {
+        u: userId
+      }).catch(error);
+    },
+    getGalleryPosts: async function(userId, rating, timestamp, error) {
+      return await this.run("getGalleryPosts", {
+        d: timestamp,
+        r: rating,
+        u: userId
+      }).catch(error);
+    },
+    getGalleryFavPosts2: async function(userId, rating, timestamp, error) {
+      return await this.run("getGalleryFavPosts2", {
+        d: timestamp,
+        r: rating,
+        u: userId
+      }).catch(error);
+    },
+    getFollowers: async function(userId, returnFollowing, timestamp, error) {
+      return await this.run("getFollowers", {
+        d: timestamp,
+        f: returnFollowing,
+        u: userId
+      }).catch(error);
+    },
+    getProfileComments: async function(userId, timestamp, error) {
+      return await this.run("getProfileComments", {
+        d: timestamp,
+        u: userId
+      }).catch(error);
     },
     run: async function(name, request) {
       if (request == undefined) request = {};
@@ -438,6 +480,16 @@ var parse = {
         createdAt: obj.createdAt,
         updatedAt: obj.updatedAt
       }
+    },
+    follow: function(obj) {
+      if (obj == undefined) return;
+      return {
+        id: obj.id,
+        follower: this.user(obj.get("f")),
+        following: this.user(obj.get("t")),
+        createdAt: obj.createdAt,
+        updatedAt: obj.updatedAt
+      }
     }
   }
 };
@@ -452,20 +504,27 @@ var pageRenderer = (function() {
       var d = document.createElement(e[i].tagName);
       if (e[i].tagName == "radio") {
         if (e[i].selected) d.classList.add("checked");
-        if (!e[i].readonly) d.onclick = ((t) => () => {
+        if (!e[i].readonly) d.addEventListener("click", ((t) => () => {
           if (t.classList.contains("checked")) return;
           var n = t.getAttribute("name");
           var c = document.querySelector("radio.checked" + (n != null ? "[name=" + n + "]" : ""));
           if (c) c.classList.remove("checked");
           t.classList.add("checked");
-        })(d);
+        })(d));
       }
       if (e[i].tagName == "checkbox") {
         if (e[i].selected) d.classList.add("checked");
-        if (!e[i].readonly) d.onclick = ((t) => () => {
+        if (!e[i].readonly) d.addEventListener("click", ((t) => () => {
           if (t.classList.contains("checked")) t.classList.remove("checked");
           else t.classList.add("checked");
-        })(d);
+        })(d));
+      }
+      if (e[i].tagName == "switch") {
+        if (e[i].selected) d.classList.add("on");
+        if (!e[i].readonly) d.addEventListener("click", ((t) => () => {
+          if (t.classList.contains("on")) t.classList.remove("on");
+          else t.classList.add("on");
+        })(d));
       }
       var z = y(e[i].children, o);
       for (var q = 0; q < z.length; q++) d.appendChild(z[q]);
@@ -624,10 +683,16 @@ function alert(msg) {
   }, 5000);
 }
 
-function alertError(msg) {
+function alertError(msg, link) {
   var err = document.createElement("p");
   err.className = "error";
   err.innerText = msg;
+  if (link) err.appendChild(pageRenderer.parseObject({
+    tagName: "a",
+    className: "errorLink",
+    innerText: link.text,
+    href: link.url
+  }));
   document.body.appendChild(err);
   setTimeout(() => {
     if (document.body.contains(err)) {
@@ -653,7 +718,10 @@ function createDrawer(isGuest, selected, padded) {
   if (drawer.get("login")) drawer.get("login").onclick = () => location.href = parse.extension.path + "login.html";
   drawer.get("mode").onclick = () => {
     if (config.rating > 0) localStorage.removeItem("eFurWeb.nsfw");
-    else localStorage.setItem("eFurWeb.nsfw", "");
+    else {
+      if (parse.requireAccount()) return;
+      localStorage.setItem("eFurWeb.nsfw", "");
+    }
     var u = new URL(location.href);
     u.hash = "";
     location.href = u;
@@ -665,7 +733,7 @@ function createDrawer(isGuest, selected, padded) {
   drawer.get("messages").onclick = () => goto("chat");
   drawer.get("discover").onclick = () => alert("Coming soon!");
   drawer.get("profile").onclick = () => goto("profile@" + Parse.User.current().id);
-  drawer.get("settings").onclick = () => alert("Coming soon!");
+  drawer.get("settings").onclick = () => goto("settings");
   drawer.get("about").onclick = () => goto("about");
 }
 
@@ -709,6 +777,259 @@ function appendMenu(menu, appendTo, center) {
   appendTo.appendChild(menu);
 }
 
+function registerTabs(tabs) {
+  var q = tabs.querySelectorAll("tab");
+  for (var i = 0; i < q.length; i++) {
+    q[i].onclick = ((tabs, v, c) => () => {
+      var f = tabs.querySelector("tab.selected");
+      if (f == v) return;
+      if (f) f.classList.remove("selected");
+      v.classList.add("selected");
+      if (c) c();
+      v.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center'
+      });
+    })(tabs, q[i], q[i].onclick);
+  }
+}
+
+async function translatePost(post, postElem) {
+  var storyText = postElem.get("post_content");
+  postElem.get("body").innerHTML = "<p class=\"mediaPost postTitle\">Translating...</p>";
+  post.translated = true;
+  // recreate content
+  //   image/gif
+  if (post.type == 0 || post.type == 2) {
+    var response = await fetch("https://translate.flexan.cf/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
+    if (!response.success) {
+      postElem.get("body").querySelector("p").innerText = response.error;
+      return;
+    }
+    postElem.get("body").innerHTML = "";
+    pageRenderer.compile("feed", "imageBody", {
+      post_title: response.output.text.split("<!>")[0].trim() == "" ? undefined : response.output.text.split("<!>")[0],
+      post_pic_url: post.type == 2 ? post.image.full : post.image.preview,
+      post_artist: response.output.text.split("<!>")[1].trim() == "" ? undefined : response.output.text.split("<!>")[1],
+      post_desc: response.output.text.split("<!>")[2].trim() == "" ? undefined : response.output.text.split("<!>")[2]
+    }).appendTo(postElem.get("body"));
+    return;
+  }
+  //   story
+  if (post.type == 1) {
+    var response = await fetch("https://translate.flexan.cf/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "") + "<!>" + (storyText.innerText ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
+    if (!response.success) {
+      postElem.get("body").querySelector("p").innerText = response.error;
+      return;
+    }
+    postElem.get("body").innerHTML = "";
+    pageRenderer.compile("feed", "storyBody", {
+      post_title: response.output.text.split("<!>")[0].trim() == "" ? undefined : response.output.text.split("<!>")[0],
+      post_content: response.output.text.split("<!>")[3].trim() == "" ? undefined : response.output.text.split("<!>")[3],
+      post_artist: response.output.text.split("<!>")[1].trim() == "" ? undefined : response.output.text.split("<!>")[1],
+      post_desc: response.output.text.split("<!>")[2].trim() == "" ? undefined : response.output.text.split("<!>")[2]
+    }).appendTo(postElem.get("body"));
+    return;
+  }
+  //   poll
+  if (post.type == 3) {
+    var response = await fetch("https://translate.flexan.cf/translate?text=" + encodeURIComponent((post.poll.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
+    if (!response.success) {
+      postElem.get("body").querySelector("p").innerText = response.error;
+      return;
+    }
+    var loadPoll = (postElem, post, pollVote) => {
+      if (!pollVote && post.user.id == Parse.User.current().id) {
+        loadPoll(postElem, post, {
+          options: []
+        });
+        return;
+      }
+      postElem.get("body").innerHTML = "";
+      var poll = pageRenderer.compile("feed", "pollBody", {
+        poll_title: response.output.text.split("<!>")[0].trim() == "" ? undefined : response.output.text.split("<!>")[0],
+        poll_count: post.poll.total_votes,
+        post_artist: response.output.text.split("<!>")[1].trim() == "" ? undefined : response.output.text.split("<!>")[1],
+        post_desc: response.output.text.split("<!>")[2].trim() == "" ? undefined : response.output.text.split("<!>")[2]
+      });
+      var a = [];
+      for (var z = 0; z < post.poll.options.length; z++) {
+        var r = [{tagName: post.poll.multi ? "checkbox" : "radio", innerText: post.poll.options[z], __name: "poll-" + post.poll.id, voteIndex: z + ""}];
+        if (pollVote) {
+          r[0].readonly = true;
+          r[0].selected = pollVote.options.includes(z);
+          r.push({tagName: "p", innerText: post.poll.votes[z] + " furs" + (post.poll.total_choices > 0 ? ", " + Math.floor(post.poll.votes[z] / +post.poll.total_choices * 100) + "%" : ""), className: "pollResult"});
+        }
+        r.push({tagName: "br"});
+        var o = pageRenderer.parseObjects(r, {});
+        a.push(o.children[0]);
+        o.appendTo(poll.get("poll_options"));
+      }
+      poll.appendTo(postElem.get("body"));
+      var submit = poll.get("poll_submit");
+      submit.onclick = async () => {
+        var v = [];
+        if (post.poll.multi) {
+          // multi
+          var s = document.querySelectorAll("checkbox.checked[name=poll-" + post.poll.id + "]");
+          if (s.length == 0) {
+            alertError("Select at least one option!");
+            return;
+          }
+          for (var x = 0; x < s.length; x++) v.push(+s[x].voteIndex);
+        } else {
+          // single
+          var s = document.querySelector("radio.checked[name=poll-" + post.poll.id + "]");
+          if (s == null) {
+            alertError("Select at least one option!");
+            return;
+          }
+          v.push(+s.voteIndex);
+        }
+        // vote on poll
+        var r = parse.parse.pollVote(await parse.cloud.voteOnPoll(post.poll.id, v, (e) => alertError(e.message)));
+        loadPoll(postElem, post, r);
+      };
+      if (!pollVote) (async () => {
+        var v = parse.parse.pollVote(await parse.cloud.getPollVote(post.poll.id, (e) => alertError(e.message)));
+        if (v != null) loadPoll(postElem, post, v);
+      })();
+      else submit.parentNode.removeChild(submit);
+    };
+    loadPoll(postElem, post);
+    return;
+  }
+  //   video
+  if (post.type == 4) {
+    var response = await fetch("https://translate.flexan.cf/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
+    if (!response.success) {
+      postElem.get("body").querySelector("p").innerText = response.error;
+      return;
+    }
+    postElem.get("body").innerHTML = "";
+    pageRenderer.compile("feed", "videoBody", {
+      post_title: response.output.text.split("<!>")[0].trim() == "" ? undefined : response.output.text.split("<!>")[0],
+      post_thumb_url: post.video.preview,
+      post_vid_url: post.video.video,
+      post_artist: response.output.text.split("<!>")[1].trim() == "" ? undefined : response.output.text.split("<!>")[1],
+      post_desc: response.output.text.split("<!>")[2].trim() == "" ? undefined : response.output.text.split("<!>")[2]
+    }).appendTo(postElem.get("body"));
+    return;
+  }
+}
+
+function createPostContent(post, postElem, fullFeatures) {
+  postElem.get("body").innerHTML = "";
+  post.translated = false;
+  // create content
+  //   image/gif
+  if (post.type == 0 || post.type == 2) {
+    pageRenderer.compile("feed", "imageBody", {
+      post_title: post.title,
+      post_pic_url: post.type == 2 ? post.image.full : post.image.preview,
+      post_artist: post.artist,
+      post_desc: post.description
+    }).appendTo(postElem.get("body"));
+  }
+  //   story
+  if (post.type == 1) {
+    var c = pageRenderer.compile("feed", "storyBody", {
+      post_title: post.title,
+      post_content: post.story && fullFeatures ? "Loading..." : (post.story ? post.content + "..." : post.content),
+      post_artist: post.artist,
+      post_desc: post.description
+    });
+    if (post.story && fullFeatures) {
+      (async (d) => {
+        d.innerText = await fetch(post.story.full).then((t) => t.text());
+      })(c.get("post_content"));
+    }
+    if (post.story && !fullFeatures) {
+      var l = document.createElement("span");
+      l.className = "storyPostMore";
+      l.innerText = "Expand";
+      l.reference = "load_more_label";
+      l.url = post.story.full;
+      l.onclick = ((id) => async () => goto("post@" + id))(post.id);
+      c.get("post_content").appendChild(l);
+    }
+    c.appendTo(postElem.get("body"));
+  }
+  //   poll
+  if (post.type == 3) {
+    var loadPoll = (postElem, post, pollVote) => {
+      if (!pollVote && post.user.id == Parse.User.current().id) {
+        loadPoll(postElem, post, {
+          options: []
+        });
+        return;
+      }
+      postElem.get("body").innerHTML = "";
+      var poll = pageRenderer.compile("feed", "pollBody", {
+        poll_title: post.poll.title,
+        poll_count: post.poll.total_votes,
+        post_artist: post.artist,
+        post_desc: post.description
+      });
+      var a = [];
+      for (var z = 0; z < post.poll.options.length; z++) {
+        var r = [{tagName: post.poll.multi ? "checkbox" : "radio", innerText: post.poll.options[z], __name: "poll-" + post.poll.id, voteIndex: z + ""}];
+        if (pollVote) {
+          r[0].readonly = true;
+          r[0].selected = pollVote.options.includes(z);
+          r.push({tagName: "p", innerText: post.poll.votes[z] + " furs" + (post.poll.total_choices > 0 ? ", " + Math.floor(post.poll.votes[z] / +post.poll.total_choices * 100) + "%" : ""), className: "pollResult"});
+        }
+        r.push({tagName: "br"});
+        var o = pageRenderer.parseObjects(r, {});
+        a.push(o.children[0]);
+        o.appendTo(poll.get("poll_options"));
+      }
+      poll.appendTo(postElem.get("body"));
+      var submit = poll.get("poll_submit");
+      submit.onclick = async () => {
+        var v = [];
+        if (post.poll.multi) {
+          // multi
+          var s = document.querySelectorAll("checkbox.checked[name=poll-" + post.poll.id + "]");
+          if (s.length == 0) {
+            alertError("Select at least one option!");
+            return;
+          }
+          for (var x = 0; x < s.length; x++) v.push(+s[x].voteIndex);
+        } else {
+          // single
+          var s = document.querySelector("radio.checked[name=poll-" + post.poll.id + "]");
+          if (s == null) {
+            alertError("Select at least one option!");
+            return;
+          }
+          v.push(+s.voteIndex);
+        }
+        // vote on poll
+        var r = parse.parse.pollVote(await parse.cloud.voteOnPoll(post.poll.id, v, (e) => alertError(e.message)));
+        loadPoll(postElem, post, r);
+      };
+      if (!pollVote) (async () => {
+        var v = parse.parse.pollVote(await parse.cloud.getPollVote(post.poll.id, (e) => alertError(e.message)));
+        if (v != null) loadPoll(postElem, post, v);
+      })();
+      else submit.parentNode.removeChild(submit);
+    };
+    loadPoll(postElem, post);
+  }
+  //   video
+  if (post.type == 4) {
+    pageRenderer.compile("feed", "videoBody", {
+      post_title: post.title,
+      post_thumb_url: post.video.preview,
+      post_vid_url: post.video.video,
+      post_artist: post.artist,
+      post_desc: post.description
+    }).appendTo(postElem.get("body"));
+  }
+}
+
 function createPosts(posts, history, fullFeatures) {
   if (history) {
     for (var i = 0; i < posts.f.length; i++) history.cache.f.push(posts.f[i]);
@@ -746,114 +1067,25 @@ function createPosts(posts, history, fullFeatures) {
           return;
         }
         alert("Sharing is disabled!");
-      })(post.id)}
+      })(post.id)},
+      {innerText: "Translate", onclick: ((post, postElem, fullFeatures) => async () => {
+        if (!localStorage.getItem("eFurWeb.subscription")) {
+          alertError("Enable 'Preview features' in settings to use this feature.");
+          return;
+        }
+        if (!post.translated) translatePost(post, postElem);
+        else createPostContent(post, postElem, fullFeatures);
+      })(post, postElem, fullFeatures)}
     ]);
     postElem.get("more").onclick = ((menu) => () => {
       appendMenu(menu, document.body);
     })(menu);
     // create content
-    //   image/gif
-    if (post.type == 0 || post.type == 2) {
-      pageRenderer.compile("feed", "imageBody", {
-        post_title: post.title,
-        post_pic_url: post.type == 2 ? post.image.full : post.image.preview,
-        post_artist: post.artist,
-        post_desc: post.description
-      }).appendTo(postElem.get("body"));
-    }
-    //   story
-    if (post.type == 1) {
-      var c = pageRenderer.compile("feed", "storyBody", {
-        post_title: post.title,
-        post_content: post.story && fullFeatures ? "Loading..." : (post.story ? post.content + "..." : post.content),
-        post_artist: post.artist,
-        post_desc: post.description
-      });
-      if (post.story && fullFeatures) {
-        (async (d) => {
-          d.innerText = await fetch(post.story.full).then((t) => t.text());
-        })(c.get("post_content"));
-      }
-      if (post.story && !fullFeatures) {
-        var l = document.createElement("span");
-        l.className = "storyPostMore";
-        l.innerText = "Expand";
-        l.reference = "load_more_label";
-        l.url = post.story.full;
-        l.onclick = ((id) => async () => goto("post@" + id))(post.id);
-        c.get("post_content").appendChild(l);
-      }
-      c.appendTo(postElem.get("body"));
-    }
-    //   poll
-    if (post.type == 3) {
-      var loadPoll = (postElem, post, pollVote) => {
-        postElem.get("body").innerHTML = "";
-        var poll = pageRenderer.compile("feed", "pollBody", {
-          poll_title: post.poll.title,
-          poll_count: post.poll.total_votes,
-          post_artist: post.artist,
-          post_desc: post.description
-        });
-        var a = [];
-        for (var z = 0; z < post.poll.options.length; z++) {
-          var r = [{tagName: post.poll.multi ? "checkbox" : "radio", innerText: post.poll.options[z], __name: "poll-" + post.poll.id, voteIndex: z + ""}];
-          if (pollVote) {
-            r[0].readonly = true;
-            r[0].selected = pollVote.options.includes(z);
-            r.push({tagName: "p", innerText: post.poll.votes[z] + " furs, " + Math.floor(post.poll.votes[z] / post.poll.total_choices * 100) + "%", className: "pollResult"});
-          }
-          r.push({tagName: "br"});
-          var o = pageRenderer.parseObjects(r, {});
-          a.push(o.children[0]);
-          o.appendTo(poll.get("poll_options"));
-        }
-        poll.appendTo(postElem.get("body"));
-        var submit = poll.get("poll_submit");
-        submit.onclick = ((id, m) => async () => {
-          var v = [];
-          if (m) {
-            // multi
-            var s = document.querySelectorAll("checkbox.checked[name=poll-" + id + "]");
-            if (s.length == 0) {
-              alertError("Select at least one option!");
-              return;
-            }
-            for (var x = 0; x < s.length; x++) v.push(+s[x].voteIndex);
-          } else {
-            // single
-            var s = document.querySelector("radio.checked[name=poll-" + id + "]");
-            if (s == null) {
-              alertError("Select at least one option!");
-              return;
-            }
-            v.push(+s.voteIndex);
-          }
-          // vote on poll
-          var r = parse.parse.pollVote(await parse.cloud.voteOnPoll(id, v, (e) => alertError(e.message)));
-          loadPoll(postElem, post, r);
-        })(post.poll.id, post.poll.multi);
-        if (!pollVote) (async () => {
-          var v = parse.parse.pollVote(await parse.cloud.getPollVote(post.poll.id, (e) => alertError(e.message)));
-          if (v != null) loadPoll(postElem, post, v);
-        })();
-        else submit.parentNode.removeChild(submit);
-      };
-      loadPoll(postElem, post);
-    }
-    //   video
-    if (post.type == 4) {
-      pageRenderer.compile("feed", "videoBody", {
-        post_title: post.title,
-        post_thumb_url: post.video.preview,
-        post_vid_url: post.video.video,
-        post_artist: post.artist,
-        post_desc: post.description
-      }).appendTo(postElem.get("body"));
-    }
+    createPostContent(post, postElem, fullFeatures);
     // favorite functionality
     var fav = postElem.get("isfavorite");
     postElem.get("favorite").onclick = ((count, fav, id) => async () => {
+      if (parse.requireAccount()) return;
       var a = fav.innerText != "favorite";
       fav.innerText = a ? "favorite" : "favorite_border";
       count.innerText = a ? +count.innerText + 1 : +count.innerText - 1;
@@ -900,6 +1132,7 @@ async function createComments(aff, sub, d) {
     // like functionality
     var like = commentElem.get("like");
     like.onclick = ((like, count, id) => async () => {
+      if (parse.requireAccount()) return;
       var a = !like.classList.contains("androidIconFill");
       if (a) {
         like.className = "commentLike androidIconFill";
@@ -932,12 +1165,13 @@ async function createComments(aff, sub, d) {
       {tagName: "button", innerText: "Comment", reference: "comment"}
     ]);
     s.get("comment").onclick = ((s, sub, id) => async () => {
+      if (parse.requireAccount()) return;
       var err = false;
       await parse.cloud.createComment(aff, s.get("content").value, sub ? sub : id, sub ? id : undefined, (e) => {
         err = true;
         alertError(e.message);
       });
-      if (!err) goto("post@" + aff);
+      if (!err) goto("post@" + aff, true);
     })(s, sub, comment.id);
     var menu = createMenu(s.children, true);
     commentElem.get("reply").onclick = ((menu) => () => {
@@ -1048,11 +1282,17 @@ var config = {
       p: {}
     },
     cacheHtml: []
-  }
+  },
+  busy: false,
+  lang: "en"
 };
 
-function goto(name) {
-  initPage(name, true, false);
+async function goto(name, removeTraces) {
+  if (config.busy) return;
+  config.busy = true;
+  if (removeTraces) config.history.pop();
+  await initPage(name, true, false);
+  config.busy = false;
 }
 
 async function initPage(page, fromHash, fromHistory, userHash) {
@@ -1153,7 +1393,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
         err = true;
         alertError(e.message);
       });
-      if (!err) goto("post@" + aff);
+      if (!err) goto("post@" + aff, true);
     };
     var menu = createMenu(d.children, true);
     var o = pageRenderer.parseObject({tagName: "p", className: "commentsNone", innerHTML: "Such emptiness... <p class=\"htmlLink\">Write a comment</p>"}, {});
@@ -1171,13 +1411,16 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     }
     return Return();
   }
-  // page: new
+  // page: profile
   if (page == "profile") {
-    // get profile
-    var profile = parse.parse.profile(await parse.cloud.getUserProfile(aff, (e) => alertError(e.message)));
     // create drawer
     var selected = null;
     if (aff == Parse.User.current().id) selected = "profile";
+    createDrawer(parse.isGuest(), selected, false);
+    // get profile
+    var profile = parse.parse.profile(await parse.cloud.getUserProfile(aff, (e) => alertError(e.message)));
+    // recreate drawer
+    document.body.innerHTML = "";
     createDrawer(parse.isGuest(), selected, fromHash);
     // create page
     var p = pageRenderer.render(page, {
@@ -1185,11 +1428,300 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       background: profile.background ? profile.background.preview : parse.extension.path + "res/default_background.png",
       icon: profile.icon ? profile.icon.preview : parse.extension.path + "res/default_icon.png",
       username: profile.username,
-      following: profile.followingCount,
-      followers: profile.followerCount,
-      posts: profile.postCount,
+      following: profile.followingCount ?? 0,
+      followers: profile.followerCount ?? 0,
+      posts: profile.postCount ?? 0,
       since: formatTime(new Date(profile.memberSince), 2).toUpperCase()
     });
+    // setup tabs
+    p.body.get("tab_about").onclick = async () => {
+      window.onscroll = undefined;
+      p.body.get("info_page").innerHTML = "";
+      var x = pageRenderer.compile("profile", "about", {});
+      x.appendTo(p.body.get("info_page"));
+      // get stats
+      var stats = await parse.cloud.getUserProfileAbout(aff, (e) => alertError(e.message));
+      if (stats.i) x.get("presentation").innerHTML = DOMPurify.sanitize(marked.parse(stats.i));
+      if (stats.s) x.get("stats").innerText = [
+        (stats.s.g ?? "0") + " posts created",
+        (stats.s.e ?? "0") + " comments written",
+        (stats.s.f ?? "0") + " comments received",
+        (stats.s.c ?? "0") + " liked posts",
+        (stats.s.d ?? "0") + " likes received",
+        (stats.s.a ?? "0") + " users followed",
+        (stats.s.b ?? "0") + " followers"
+      ].join("\n");
+    };
+    p.body.get("tab_gallery").onclick = async () => {
+      window.onscroll = undefined;
+      p.body.get("info_page").innerHTML = "";
+      var x = pageRenderer.compile("profile", "gallery", {});
+      x.appendTo(p.body.get("info_page"));
+      // get posts
+      var posts = await parse.cloud.getGalleryPosts(aff, config.rating, undefined, (e) => alertError(e.message));
+      posts.p = parse.parse.array(posts.p, "post");
+      var y = (posts) => {
+        for (var i = 0; i < posts.p.length; i++) {
+          history.scrollTime = +posts.p[i].createdAt;
+          var d = document.createElement("div");
+          d.className = "cell";
+          d.onclick = ((id) => () => {
+            goto("post@" + id);
+          })(posts.p[i].id);
+          p.body.get("view").appendChild(d);
+          if (posts.p[i].type == 0 || posts.p[i].type == 2) { // image/gif
+            pageRenderer.parseObjects([{
+              tagName: "img",
+              src: posts.p[i].image.thumbnail
+            }], {}).appendTo(d);
+            continue;
+          }
+          if (posts.p[i].type == 1) { // story
+            pageRenderer.parseObjects([{
+              tagName: "p",
+              className: "icon textIcon androidIcon",
+              innerText: "format_size"
+            },
+            {
+              tagName: "p",
+              className: "text",
+              innerText: posts.p[i].content
+            }], {}).appendTo(d);
+            continue;
+          }
+          if (posts.p[i].type == 3) { // poll
+            pageRenderer.parseObjects([{
+              tagName: "p",
+              className: "icon androidIcon",
+              innerText: "poll"
+            },
+            {
+              tagName: "p",
+              innerText: posts.p[i].poll.title
+            }], {}).appendTo(d);
+            continue;
+          }
+        }
+      };
+      y(posts);
+      
+      var wait = false;
+      window.onscroll = async () => {
+        if (wait) return;
+        if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
+          wait = true;
+          var posts = await parse.cloud.getGalleryPosts(aff, config.rating, history.scrollTime, (e) => alertError(e.message));
+          posts.p = parse.parse.array(posts.p, "post");
+          y(posts);
+          wait = false;
+        }
+      };
+    };
+    p.body.get("tab_favourites").onclick = async () => {
+      window.onscroll = undefined;
+      p.body.get("info_page").innerHTML = "";
+      var x = pageRenderer.compile("profile", "gallery", {});
+      x.appendTo(p.body.get("info_page"));
+      // get posts
+      var posts = await parse.cloud.getGalleryFavPosts2(aff, config.rating, undefined, (e) => alertError(e.message));
+      var y = (posts) => {
+        for (var i = 0; i < posts.f.length; i++) {
+          var x = parse.parse.post(posts.f[i].p);
+          history.scrollTime = +x.createdAt;
+          var d = document.createElement("div");
+          d.className = "cell";
+          d.onclick = ((id) => () => {
+            goto("post@" + id);
+          })(x.id);
+          p.body.get("view").appendChild(d);
+          if (x.type == 0 || x.type == 2) { // image/gif
+            pageRenderer.parseObjects([{
+              tagName: "img",
+              src: x.image.thumbnail
+            }], {}).appendTo(d);
+            continue;
+          }
+          if (x.type == 1) { // story
+            pageRenderer.parseObjects([{
+              tagName: "p",
+              className: "icon textIcon androidIcon",
+              innerText: "format_size"
+            },
+            {
+              tagName: "p",
+              className: "text",
+              innerText: x.content
+            }], {}).appendTo(d);
+            continue;
+          }
+          if (x.type == 3) { // poll
+            pageRenderer.parseObjects([{
+              tagName: "p",
+              className: "icon androidIcon",
+              innerText: "poll"
+            },
+            {
+              tagName: "p",
+              innerText: x.poll.title
+            }], {}).appendTo(d);
+            continue;
+          }
+        }
+      };
+      y(posts);
+      
+      var wait = false;
+      window.onscroll = async () => {
+        if (wait) return;
+        if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
+          wait = true;
+          var posts = await parse.cloud.getGalleryFavPosts2(aff, config.rating, history.scrollTime, (e) => alertError(e.message));
+          y(posts);
+          wait = false;
+        }
+      };
+    };
+    p.body.get("tab_comments").onclick = async () => {
+      window.onscroll = undefined;
+      p.body.get("info_page").innerHTML = "";
+      var x = pageRenderer.compile("profile", "comments", {});
+      x.appendTo(p.body.get("info_page"));
+      // get comments
+      var comments = await parse.cloud.getProfileComments(aff, undefined, (e) => alertError(e.message));
+      var y = (comments) => {
+        for (var i = 0; i < comments.length; i++) {
+          var x = parse.parse.comment(comments[i]);
+          history.scrollTime = +x.createdAt;
+          var d = pageRenderer.compile("post", "comment", {
+            pfp_url: x.user.icon ? x.user.icon.preview : parse.extension.path + "res/default_icon.png",
+            username: x.user.username,
+            upload_time: formatTime(x.createdAt, 1),
+            content: x.content
+          });
+          d.get("foot").parentNode.removeChild(d.get("foot"));
+          d.get("comment").style.cursor = "pointer";
+          d.get("comment").onclick = ((id) => () => {
+            goto("post@" + id);
+          })(x.post.id);
+          d.appendTo(p.body.get("view"));
+        }
+      };
+      y(comments);
+      
+      var wait = false;
+      window.onscroll = async () => {
+        if (wait) return;
+        if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
+          wait = true;
+          var comments = await parse.cloud.getProfileComments(aff, history.scrollTime, (e) => alertError(e.message));
+          y(comments);
+          wait = false;
+        }
+      };
+    };
+    p.body.get("tab_followers").onclick = async () => {
+      window.onscroll = undefined;
+      p.body.get("info_page").innerHTML = "";
+      var x = pageRenderer.compile("profile", "follow", {});
+      x.appendTo(p.body.get("info_page"));
+      // get followers
+      var followers = await parse.cloud.getFollowers(aff, false, undefined, (e) => alertError(e.message));
+      var y = (followers) => {
+        for (var i = 0; i < followers.length; i++) {
+          var x = parse.parse.follow(followers[i]);
+          history.scrollTime = +x.createdAt;
+          var d = document.createElement("div");
+          d.className = "item";
+          if (!x.follower) x.follower = {username: "Deleted account"};
+          else d.onclick = ((id) => () => {
+            goto("profile@" + id);
+          })(x.follower.id);
+          pageRenderer.parseObjects([{
+            tagName: "img",
+            className: "background",
+            src: x.follower.background ? x.follower.background.preview : parse.extension.path + "res/default_background.png"
+          }, {
+            tagName: "img",
+            className: "icon",
+            src: x.follower.icon ? x.follower.icon.preview : parse.extension.path + "res/default_icon.png"
+          }, {
+            tagName: "span",
+            className: "username",
+            innerText: x.follower.username
+          }, {
+            tagName: "p",
+            className: "time",
+            innerText: "Follower for " + formatTime(x.createdAt, 0)
+          }], {}).appendTo(d);
+          p.body.get("view").appendChild(d);
+        }
+      };
+      y(followers);
+      
+      var wait = false;
+      window.onscroll = async () => {
+        if (wait) return;
+        if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
+          wait = true;
+          var followers = await parse.cloud.getFollowers(aff, false, history.scrollTime, (e) => alertError(e.message));
+          y(followers);
+          wait = false;
+        }
+      };
+    };
+    p.body.get("tab_following").onclick = async () => {
+      window.onscroll = undefined;
+      p.body.get("info_page").innerHTML = "";
+      var x = pageRenderer.compile("profile", "follow", {});
+      x.appendTo(p.body.get("info_page"));
+      // get following
+      var following = await parse.cloud.getFollowers(aff, true, undefined, (e) => alertError(e.message));
+      var y = (following) => {
+        for (var i = 0; i < following.length; i++) {
+          var x = parse.parse.follow(following[i]);
+          history.scrollTime = +x.createdAt;
+          var d = document.createElement("div");
+          d.className = "item";
+          if (!x.following) x.following = {username: "Deleted account"};
+          else d.onclick = ((id) => () => {
+            goto("profile@" + id);
+          })(x.following.id);
+          pageRenderer.parseObjects([{
+            tagName: "img",
+            className: "background",
+            src: x.following.background ? x.following.background.preview : parse.extension.path + "res/default_background.png"
+          }, {
+            tagName: "img",
+            className: "icon",
+            src: x.following.icon ? x.following.icon.preview : parse.extension.path + "res/default_icon.png"
+          }, {
+            tagName: "span",
+            className: "username",
+            innerText: x.following.username
+          }, {
+            tagName: "p",
+            className: "time",
+            innerText: "Following for " + formatTime(x.createdAt, 0)
+          }], {}).appendTo(d);
+          p.body.get("view").appendChild(d);
+        }
+      };
+      y(following);
+      
+      var wait = false;
+      window.onscroll = async () => {
+        if (wait) return;
+        if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
+          wait = true;
+          var following = await parse.cloud.getFollowers(aff, true, history.scrollTime, (e) => alertError(e.message));
+          y(following);
+          wait = false;
+        }
+      };
+    };
+    p.body.get("tab_about").onclick();
+    registerTabs(p.body.get("tabs"));
+
     p.body.appendTo(document.body);
     if (fromHash) {
       // setup header
@@ -1236,6 +1768,27 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     location.href = "https://chat.flexan.cf/?token=" + parse.export() + (aff ? decodeURIComponent(aff) : "");
     return;
   }
+  // page: settings
+  if (page == "settings") {
+    // create drawer
+    createDrawer(parse.isGuest(), "settings");
+    // create page
+    var p = pageRenderer.render(page, {});
+    if (localStorage.getItem("eFurWeb.subscription")) p.body.get("preview_features").classList.add("on");
+    p.body.get("preview_features").onclick = () => {
+      if (p.body.get("preview_features").classList.contains("on")) {
+        localStorage.setItem("eFurWeb.subscription", "free");
+        return;
+      }
+      localStorage.removeItem("eFurWeb.subscription");
+    };
+    p.body.get("logout").onclick = () => {
+      Parse.User.logOut();
+      location.href = parse.extension.path + "login.html";
+    };
+    p.body.appendTo(document.body);
+    return;
+  }
   // page: about
   if (page == "about") {
     // create drawer
@@ -1278,7 +1831,6 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     p.body.get("guests").innerText += " " + stats.get("a");
     p.body.get("posts").innerText += " " + stats.get("c");
     p.body.get("comments").innerText += " " + stats.get("d");
-
     return;
   }
   goto("feed");
@@ -1311,7 +1863,7 @@ var pages;
   
   // make the hash control the page
   window.onhashchange = () => {
-    if (location.hash != "") initPage(location.hash.substring(1), true, false, true);
+    if (location.hash != "") initPage(location.hash.substring(1), true, undefined, true);
   };
   initPage(location.hash != "" ? location.hash.substring(1) : "feed", undefined, undefined, true);
 

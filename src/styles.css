@@ -33,7 +33,7 @@ body, html {
 }
 /* center and limited size */
 .postContainer, .previewContainer {
-  width: 600px;/*1*/
+  width: var(--post-width);
   height: 100%;
   position: absolute;
   left: 50%;
@@ -58,6 +58,19 @@ body, html {
   bottom: 10px;
   transform: translateX(-50%);
   border-radius: 4px;
+}
+
+.errorLink {
+  background-color: rgb(187, 0, 0);
+  color: white;
+  padding: 0 10px;
+  border-radius: 4px;
+  line-height: 40px;
+  text-decoration: none;
+  user-select: none;
+  position: absolute;
+  top: 4px;
+  right: 4px;
 }
 
 .alert, .fadingAlert {
@@ -226,6 +239,111 @@ button:disabled {
 }
 
 /*
+  progress bars and ranges
+*/
+progress {
+  border-radius: 7px;
+  height: 5px;
+  width: 100%;
+}
+
+progress::-webkit-progress-bar {
+  background-color: transparent;
+  border-radius: 7px;
+}
+
+progress::-webkit-progress-value {
+  background-color: rgb(255, 166, 0);
+  border-radius: 7px;
+  transition: width 0.8s ease;
+}
+
+input[type="range"] {
+  appearance: none;
+  height: 12px;
+  border-radius: 12px;
+  background-color: rgb(170, 111, 0);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: rgb(255, 166, 0);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/*
+  switches and tabs
+*/
+switch {
+  line-height: 30px;
+  cursor: pointer;
+}
+
+switch.notext {
+  display: block;
+  width: 75px;
+  height: 30px;
+}
+
+switch:before {
+  content: "";
+  float: left;
+  position: relative;
+  top: 5px;
+  width: 50px;
+  height: 20px;
+  background-color: rgb(104, 104, 104);
+  margin: 0 5px;
+  border-radius: 30px;
+}
+
+switch.on:before {
+  background-color: rgb(170, 111, 0);
+}
+
+switch:after {
+  content: "";
+  float: left;
+  position: absolute;
+  left: 5px;
+  width: 30px;
+  height: 30px;
+  background-color: rgb(168, 168, 168);
+  border-radius: 50%;
+}
+
+switch.on:after {
+  left: 25px;
+  background-color: rgb(255, 166, 0);
+}
+
+tabs {
+  display: block;
+  color: #babbbc;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  user-select: none;
+}
+
+tab {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 15px;
+  width: min-content;
+  margin: 0;
+  display: inline-block;
+}
+
+tab.selected {
+  color: rgb(255, 166, 0);
+  border-bottom: 2px solid rgb(255, 166, 0);
+}
+
+/*
   html header
 */
 .htmlHeader {
@@ -240,7 +358,7 @@ button:disabled {
 .htmlBack {
   font-size: 28px;
   margin: 0;
-  margin-left: calc(50% - 96px - 300px);/*2*/ /* 300px is half of the postContainer width + 20px for good padding + 28px of this width + 8px of post margin */
+  margin-left: calc(50% - 96px - (var(--post-width) / 2)); /* 300px is half of the postContainer width + 20px for good padding + 28px of this width + 8px of post margin */
   float: left;
   line-height: 28px;
   cursor: pointer;
@@ -772,6 +890,105 @@ button:disabled {
   float: left;
   line-height: 24px;
 }
+/* about page */
+.pflSubAboutTitle {
+  color: rgb(168, 168, 168);
+  font-size: 18px;
+  margin: 4px 0;
+}
+
+.pflSubAboutMarkdown {
+  padding: 10px;
+  height: 100%;
+  background-color: rgb(23, 27, 32);
+  border-radius: 12px;
+}
+
+.pflSubAboutMarkdown a {
+  color: rgb(255, 166, 0);
+}
+
+.pflSubAboutMarkdown hr {
+  height: 5px;
+  border: none;
+  border-radius: 5px;
+  background-color: rgb(31, 36, 43);
+}
+/* gallery & favourites page */
+.pflSubPostView {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(148px, auto); 
+  user-select: none;
+}
+
+.pflSubPostView .cell {
+  overflow: hidden;
+  width: 148px;
+  height: 148px;
+  padding: 1px;
+  cursor: pointer;
+}
+
+.pflSubPostView .cell img {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.pflSubPostView .cell p {
+  margin: 0;
+}
+
+.pflSubPostView .cell .icon {
+  font-size: 28px;
+  text-align: center;
+}
+
+.pflSubPostView .cell .textIcon {
+  color: rgb(255, 166, 0);
+}
+
+.pflSubPostView .cell .text {
+  font-size: 14px;
+}
+/* comments page */
+/* followers & following page */
+.pflSubFollowView .item {
+  width: 100%;
+  height: 80px;
+  cursor: pointer;
+}
+
+.pflSubFollowView .item .background {
+  position: absolute;
+  z-index: -1;
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  opacity: 0.2;
+}
+
+.pflSubFollowView .item .icon {
+  vertical-align: middle;
+  width: 60px;
+  height: 60px;
+  margin: 10px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.pflSubFollowView .item .username {
+  margin: 0;
+  font-size: 20px;
+}
+
+.pflSubFollowView .item .time {
+  color: rgb(207, 207, 207);
+  margin: 10px;
+  line-height: 60px;
+  float: right;
+}
 
 /*
   notification
@@ -834,6 +1051,27 @@ button:disabled {
   border-radius: 12px;
   object-fit: cover;
   user-select: none;
+}
+
+/*
+  settings page
+*/
+.settingsItem {
+  position: relative;
+}
+
+.settingsItem p {
+  line-height: 30px;
+}
+
+.settingsItem switch {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.settingsButton {
+  width: 100%;
 }
 
 /*

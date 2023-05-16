@@ -7,6 +7,10 @@ window.onload = function() {
   document.querySelector("button").onclick = async function() {
     document.querySelector(".error").innerText = "";
     document.querySelector("button").disabled = true;
+    if (Parse.User.current() != null && Parse.User.current().get("username").length !== 25) {
+      location.href = "./index.html" + (r ? "#" + r : "");
+      return;
+    }
     await Parse.User.logIn(document.querySelector("input[type=email]").value, document.querySelector("input[type=password]").value).then(() => {
       location.href = "./index.html" + (r ? "#" + r : "");
     }).catch((e) => {
