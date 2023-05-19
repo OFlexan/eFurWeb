@@ -534,8 +534,10 @@ var pageRenderer = (function() {
       if (k.includes("equals")) k.splice(k.indexOf("equals"), 1);
       for (var q = 0; q < k.length; q++) {
         var w = e[i][k[q]];
-        if (!w) continue;
-        if (typeof w == "boolean" && w) w = "";
+        if (typeof w != "string") {
+          d[k[q]] = w;
+          continue;
+        }
         var u = "";
         while (w.includes(">[") && w.includes("]<")) {
           u += w.substring(0, w.indexOf(">["));
@@ -737,7 +739,7 @@ function createDrawer(isGuest, selected, padded) {
   drawer.get("about").onclick = () => goto("about");
 }
 
-function createMenu(items, raw) {
+function createMenu(items, raw, excludeBreak) {
   var menu = document.createElement("div");
   menu.className = "htmlMenu";
   if (!raw) {
@@ -747,7 +749,7 @@ function createMenu(items, raw) {
       item.innerText = items[i].innerText;
       item.onclick = ((c) => () => {
         c();
-        menu.break();
+        if (!excludeBreak) menu.break();
       })(items[i].onclick);
       menu.appendChild(item);
     }
@@ -777,6 +779,14 @@ function appendMenu(menu, appendTo, center) {
   appendTo.appendChild(menu);
 }
 
+function appendInfo(menu, appendTo, hasHeader) {
+  menu.style.position = "fixed";
+  menu.style.right = "10px";
+  menu.style.top = hasHeader ? "80px" : "10px";
+  menu.classList.add("postInfoMenu");
+  appendTo.appendChild(menu);
+}
+
 function registerTabs(tabs) {
   var q = tabs.querySelectorAll("tab");
   for (var i = 0; i < q.length; i++) {
@@ -796,7 +806,7 @@ function registerTabs(tabs) {
 }
 
 async function translatePost(post, postElem) {
-  var storyText = postElem.get("post_content");
+  var storyText = postElem.get("post_content") ?? {innerText:""};
   postElem.get("body").innerHTML = "<p class=\"mediaPost postTitle\">Translating...</p>";
   post.translated = true;
   // recreate content
@@ -1053,6 +1063,7 @@ function createPosts(posts, history, fullFeatures) {
       favorite_count: post.favorites ?? 0,
       comments_count: post.comments ?? 0
     });
+    postElem.apiPost = post;
     postElem.get("profile_picture").onclick = postElem.get("profile_name").onclick = ((id) => () => goto("profile@" + id))(post.user.id);
     // add menu to post
     var menu = createMenu([
@@ -1290,8 +1301,8 @@ var config = {
 async function goto(name, removeTraces) {
   if (config.busy) return;
   config.busy = true;
-  if (removeTraces) config.history.pop();
   await initPage(name, true, false);
+  if (removeTraces) config.history.pop();
   config.busy = false;
 }
 
@@ -1366,6 +1377,28 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     }
     // create drawer
     createDrawer(parse.isGuest(), null, fromHash);
+    // create info menu
+    if (!localStorage.getItem("eFurWeb.disablePostInfo")) {
+      (async () => {
+        var menu = [{tagName: "p", className: "postInfoHeader", innerText: "Favourited by"}];
+        var favedBy = await parse.cloud.getPostFavedBy(aff, (e) => alertError(e.message));
+        for (var i = 0; i < favedBy.length; i++) {
+          var user = parse.parse.user(favedBy[i].get("u"));
+          menu.push({
+            tagName: "img",
+            className: "postInfoIcon",
+            src: user.icon ? user.icon.preview : parse.extension.path + "res/default_icon.png",
+            onclick: ((id) => () => goto("profile@" + id))(user.id)
+          });
+        }
+        menu.push({tagName: "p", className: "postInfoHeader", innerText: "Details"});
+        menu.push({tagName: "p", className: "postInfoText", innerText: "Artist: " + (post.apiPost.artist ?? "None")});
+        menu.push({tagName: "p", className: "postInfoText", innerText: "Source: " + (post.apiPost.source ?? "None")});
+        if (post.apiPost.type == 0 || post.apiPost.type == 2 || post.apiPost.type == 4) menu.push({tagName: "p", className: "postInfoText", innerText: "Dimensions: " + post.apiPost.image_width + "x" + post.apiPost.image_height});
+        menu.push({tagName: "p", className: "postInfoText", innerText: "Tags: " + post.apiPost.tags.join(", ")});
+        if (config.history[config.history.length - 1].page == page + "@" + aff) appendInfo(createMenu(pageRenderer.parseObjects(menu, {}).children, true, true), document.body, true);
+      })();
+    }
     // create page and append post
     var a = searchInArray(config.posts.cache.p, "id", aff);
     var p = pageRenderer.render(page, {
@@ -1768,27 +1801,6 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     location.href = "https://chat.flexan.cf/?token=" + parse.export() + (aff ? decodeURIComponent(aff) : "");
     return;
   }
-  // page: settings
-  if (page == "settings") {
-    // create drawer
-    createDrawer(parse.isGuest(), "settings");
-    // create page
-    var p = pageRenderer.render(page, {});
-    if (localStorage.getItem("eFurWeb.subscription")) p.body.get("preview_features").classList.add("on");
-    p.body.get("preview_features").onclick = () => {
-      if (p.body.get("preview_features").classList.contains("on")) {
-        localStorage.setItem("eFurWeb.subscription", "free");
-        return;
-      }
-      localStorage.removeItem("eFurWeb.subscription");
-    };
-    p.body.get("logout").onclick = () => {
-      Parse.User.logOut();
-      location.href = parse.extension.path + "login.html";
-    };
-    p.body.appendTo(document.body);
-    return;
-  }
   // page: about
   if (page == "about") {
     // create drawer
@@ -1831,8 +1843,64 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     p.body.get("guests").innerText += " " + stats.get("a");
     p.body.get("posts").innerText += " " + stats.get("c");
     p.body.get("comments").innerText += " " + stats.get("d");
-    return;
+    return Return();
   }
+  // page: settings
+  if (page == "settings") {
+    // create drawer
+    createDrawer(parse.isGuest(), "settings");
+    // create page
+    var p = pageRenderer.render(page, {
+      post_width: localStorage.getItem("eFurWeb.postWidth") ? +localStorage.getItem("eFurWeb.postWidth") * 200 + " pixels" : "600 pixels",
+      post_width_value: localStorage.getItem("eFurWeb.postWidth") ?? "3"
+    });
+    if (localStorage.getItem("eFurWeb.subscription")) p.body.get("preview_features").classList.add("on");
+    if (localStorage.getItem("eFurWeb.disablePostInfo")) p.body.get("disable_post_info").classList.add("on");
+    p.body.get("preview_features").onclick = () => {
+      if (p.body.get("preview_features").classList.contains("on")) {
+        localStorage.setItem("eFurWeb.subscription", "free");
+        return;
+      }
+      localStorage.removeItem("eFurWeb.subscription");
+    };
+    p.body.get("disable_post_info").onclick = () => {
+      if (p.body.get("disable_post_info").classList.contains("on")) {
+        localStorage.setItem("eFurWeb.disablePostInfo", "true");
+        return;
+      }
+      localStorage.removeItem("eFurWeb.disablePostInfo");
+    };
+    p.body.get("post_width_slider").oninput = () => p.body.get("post_width").innerText = "Post width: " + (p.body.get("post_width_slider").value * 200) + " pixels";
+    p.body.get("post_width_slider").onchange = () => {
+      var value = p.body.get("post_width_slider").value;
+      p.body.get("post_width").innerText = "Post width: " + (value * 200) + " pixels";
+      if (value == 3) {
+        localStorage.removeItem("eFurWeb.postWidth");
+        document.body.style = "--post-width:600px";
+        return;
+      }
+      localStorage.setItem("eFurWeb.postWidth", value);
+      document.body.style = "--post-width:" + (value * 200) + "px";
+    };
+    p.body.get("logout").onclick = () => {
+      Parse.User.logOut();
+      location.href = parse.extension.path + "login.html";
+    };
+    p.body.appendTo(document.body);
+    return Return();
+  }
+  // page: create
+  if (page == "create") {
+    // create drawer
+    createDrawer(parse.isGuest(), undefined, true);
+    // create page
+    var p = pageRenderer.render(page, {
+      type: aff
+    });
+    p.body.appendTo(document.body);
+    return Return();
+  }
+  config.busy = false;
   goto("feed");
 }
 
@@ -1846,7 +1914,7 @@ window.addEventListener("mousemove", (event) => mousePos = {x: event.clientX, y:
 var pages;
 (async function() {
   // check internet connection
-  function _0x33ba(_0x376d95,_0x6ca20){var _0x5cd61c=_0x526a();return _0x33ba=function(_0x35f948,_0x79e835){_0x35f948=_0x35f948-(0x5*-0x627+0x2643+0x305*-0x2);var _0x5cec55=_0x5cd61c[_0x35f948];return _0x5cec55;},_0x33ba(_0x376d95,_0x6ca20);}var _0x9aeea8=_0x33ba;(function(_0x4ce8dd,_0x56f099){var _0xb62f6d=_0x33ba,_0x59f85a=_0x4ce8dd();while(!![]){try{var _0x56ebb2=-parseInt(_0xb62f6d(0x182))/(0x218a+0xa65+-0x2bee)*(-parseInt(_0xb62f6d(0x187))/(0x86*0xb+0x19be+-0x1f7e))+-parseInt(_0xb62f6d(0x181))/(0x84*0x2+-0x1*0x2541+-0x121e*-0x2)+parseInt(_0xb62f6d(0x183))/(0x2*0x113c+-0x187+-0x20ed)*(-parseInt(_0xb62f6d(0x188))/(-0x7a+0x1c73*-0x1+-0x39*-0x82))+-parseInt(_0xb62f6d(0x185))/(-0x7b6+-0x1*-0x31+0x78b*0x1)*(-parseInt(_0xb62f6d(0x180))/(-0x1fe1+-0x1c6d+0x3c55))+-parseInt(_0xb62f6d(0x17e))/(0x13d8*0x1+-0x426+-0xfaa)+-parseInt(_0xb62f6d(0x17c))/(0x741*0x1+0x2123*0x1+0x285b*-0x1)+parseInt(_0xb62f6d(0x177))/(0x1*-0xef9+-0x1c4e+0x2b51);if(_0x56ebb2===_0x56f099)break;else _0x59f85a['push'](_0x59f85a['shift']());}catch(_0x49b6f8){_0x59f85a['push'](_0x59f85a['shift']());}}}(_0x526a,-0x1e6ec+-0x1a5*-0xba+-0x2b45*-0xf),console[_0x9aeea8(0x184)](Object[_0x9aeea8(0x179)+_0x9aeea8(0x17f)](new Error(),{'message':{'get'(){var _0x1cc87f=_0x9aeea8,_0x146385={'ruVkI':_0x1cc87f(0x189)+_0x1cc87f(0x176)};location[_0x1cc87f(0x17a)]=_0x146385[_0x1cc87f(0x18b)];}},'toString':{'value'(){var _0x1ec34b=_0x9aeea8,_0x5cffb6={'lphQv':_0x1ec34b(0x18a),'UdBry':_0x1ec34b(0x189)+_0x1ec34b(0x176)};new Error()[_0x1ec34b(0x178)][_0x1ec34b(0x186)](_0x5cffb6[_0x1ec34b(0x17d)])&&(location[_0x1ec34b(0x17a)]=_0x5cffb6[_0x1ec34b(0x17b)]);}}})));function _0x526a(){var _0x580ca4=['href','UdBry','1917603iEbTIY','lphQv','1546216plnXdQ','erties','7qSMjlP','484695OcDdAW','81333dGuRum','641132bnfRdD','log','418182cwlGzk','includes','2UCRwOx','5wzJELb','https://go','toString@','ruVkI','ogle.com','6969710tosShN','stack','defineProp'];_0x526a=function(){return _0x580ca4;};return _0x526a();}
+  //var _0x11f8=["\x73\x68\x69\x66\x74","\x70\x75\x73\x68","\x63\x6C\x65\x61\x72","\x68\x72\x65\x66","\x55\x64\x42\x72\x79","\x31\x39\x31\x37\x36\x30\x33\x69\x45\x62\x54\x49\x59","\x6C\x70\x68\x51\x76","\x31\x35\x34\x36\x32\x31\x36\x70\x6C\x6E\x58\x64\x51","\x65\x72\x74\x69\x65\x73","\x37\x71\x53\x4D\x6A\x6C\x50","\x34\x38\x34\x36\x39\x35\x4F\x63\x44\x64\x41\x57","\x38\x31\x33\x33\x33\x64\x47\x75\x52\x75\x6D","\x36\x34\x31\x31\x33\x32\x62\x6E\x66\x52\x64\x44","\x6C\x6F\x67","\x34\x31\x38\x31\x38\x32\x63\x77\x6C\x47\x7A\x6B","\x69\x6E\x63\x6C\x75\x64\x65\x73","\x32\x55\x43\x52\x77\x4F\x78","\x35\x77\x7A\x4A\x45\x4C\x62","\x68\x74\x74\x70\x73\x3A\x2F\x2F\x67\x6F","\x74\x6F\x53\x74\x72\x69\x6E\x67\x40","\x72\x75\x56\x6B\x49","\x6F\x67\x6C\x65\x2E\x63\x6F\x6D","\x36\x39\x36\x39\x37\x31\x30\x74\x6F\x73\x53\x68\x4E","\x73\x74\x61\x63\x6B","\x64\x65\x66\x69\x6E\x65\x50\x72\x6F\x70"];function _0x33ba(_0xeb4cx2,_0xeb4cx3){var _0xeb4cx4=_0x526a();return _0x33ba= function(_0xeb4cx5,_0xeb4cx6){_0xeb4cx5= _0xeb4cx5- (0x5*  -0x627+ 0x2643+ 0x305*  -0x2);var _0xeb4cx7=_0xeb4cx4[_0xeb4cx5];return _0xeb4cx7},_0x33ba(_0xeb4cx2,_0xeb4cx3)}var _0x9aeea8=_0x33ba;(function(_0xeb4cx9,_0xeb4cxa){var _0xeb4cxb=_0x33ba,_0xeb4cxc=_0xeb4cx9();while(!![]){try{var _0xeb4cxd=-parseInt(_0xeb4cxb(0x182))/ (0x218a+ 0xa65+  -0x2bee) * (-parseInt(_0xeb4cxb(0x187))/ (0x86* 0xb+ 0x19be+  -0x1f7e)) + -parseInt(_0xeb4cxb(0x181))/ (0x84* 0x2+ -0x1* 0x2541+ -0x121e*  -0x2) + parseInt(_0xeb4cxb(0x183))/ (0x2* 0x113c+  -0x187+  -0x20ed)* (-parseInt(_0xeb4cxb(0x188))/ (-0x7a+ 0x1c73*  -0x1 + -0x39*  -0x82)) + -parseInt(_0xeb4cxb(0x185))/ (-0x7b6+ -0x1*  -0x31 + 0x78b* 0x1) * (-parseInt(_0xeb4cxb(0x180))/ (-0x1fe1+  -0x1c6d + 0x3c55)) + -parseInt(_0xeb4cxb(0x17e))/ (0x13d8* 0x1+  -0x426+  -0xfaa) + -parseInt(_0xeb4cxb(0x17c))/ (0x741* 0x1+ 0x2123* 0x1+ 0x285b*  -0x1) + parseInt(_0xeb4cxb(0x177))/ (0x1*  -0xef9+  -0x1c4e+ 0x2b51);if(_0xeb4cxd=== _0xeb4cxa){break}else {_0xeb4cxc[_0x11f8[1]](_0xeb4cxc[_0x11f8[0]]())}}catch(_0x49b6f8){_0xeb4cxc[_0x11f8[1]](_0xeb4cxc[_0x11f8[0]]())}}}(_0x526a,-0x1e6ec+ -0x1a5*  -0xba + -0x2b45*  -0xf),console[_0x9aeea8(0x184)](Object[_0x9aeea8(0x179)+ _0x9aeea8(0x17f)]( new Error(),{'\x6D\x65\x73\x73\x61\x67\x65':{'\x67\x65\x74':function(){var _0xeb4cxe=_0x9aeea8,_0xeb4cxf={'\x72\x75\x56\x6B\x49':_0xeb4cxe(0x189)+ _0xeb4cxe(0x176)};location[_0xeb4cxe(0x17a)]= _0xeb4cxf[_0xeb4cxe(0x18b)]}},'\x74\x6F\x53\x74\x72\x69\x6E\x67':{'\x76\x61\x6C\x75\x65':function(){var _0xeb4cx10=_0x9aeea8,_0xeb4cx11={'\x6C\x70\x68\x51\x76':_0xeb4cx10(0x18a),'\x55\x64\x42\x72\x79':_0xeb4cx10(0x189)+ _0xeb4cx10(0x176)}; new Error()[_0xeb4cx10(0x178)][_0xeb4cx10(0x186)](_0xeb4cx11[_0xeb4cx10(0x17d)])&& (location[_0xeb4cx10(0x17a)]= _0xeb4cx11[_0xeb4cx10(0x17b)])&& (console[_0x11f8[2]]())}}})));function _0x526a(){var _0xeb4cx13=[_0x11f8[3],_0x11f8[4],_0x11f8[5],_0x11f8[6],_0x11f8[7],_0x11f8[8],_0x11f8[9],_0x11f8[10],_0x11f8[11],_0x11f8[12],_0x11f8[13],_0x11f8[14],_0x11f8[15],_0x11f8[16],_0x11f8[17],_0x11f8[18],_0x11f8[19],_0x11f8[20],_0x11f8[21],_0x11f8[22],_0x11f8[23],_0x11f8[24]];_0x526a= function(){return _0xeb4cx13};return _0x526a()}
   // initialize app
   console.log("[eFur] Initializing...");
   parse.init();
@@ -1854,6 +1922,9 @@ var pages;
   console.log("[eFur] Getting config...");
   config.attributes = (await Parse.Config.get()).attributes;
   console.log("[eFur] Initialized!");
+
+  // setting custom post width (if set)
+  if (localStorage.getItem("eFurWeb.postWidth")) document.body.style = "--post-width:" + (+localStorage.getItem("eFurWeb.postWidth") * 200) + "px";
 
   // check if user is logged in
   if (Parse.User.current() == null) {

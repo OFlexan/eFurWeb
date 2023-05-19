@@ -215,6 +215,10 @@ input[type=text]:focus, textarea:focus {
   border: 2px solid rgb(255, 166, 0);
 }
 
+input[type=text]::placeholder, textarea::placeholder {
+  color: rgb(168, 168, 168);
+}
+
 button {
   background-color: rgb(209, 136, 0);
   border: 2px solid rgb(170, 111, 0);
@@ -258,14 +262,14 @@ progress::-webkit-progress-value {
   transition: width 0.8s ease;
 }
 
-input[type="range"] {
+input[type=range] {
   appearance: none;
   height: 12px;
   border-radius: 12px;
   background-color: rgb(170, 111, 0);
 }
 
-input[type="range"]::-webkit-slider-thumb {
+input[type=range]::-webkit-slider-thumb {
   appearance: none;
   width: 20px;
   height: 20px;
@@ -426,6 +430,26 @@ tab.selected {
   margin: 0;
   display: inline;
   cursor: pointer;
+}
+/* html options */
+.htmlOption {
+  position: relative;
+}
+
+.htmlOption p {
+  line-height: 30px;
+}
+
+.htmlOption switch {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.htmlOption input[type=range] {
+  position: absolute;
+  top: 7px;
+  right: 0;
 }
 
 /*
@@ -648,6 +672,34 @@ tab.selected {
   cursor: pointer;
   color: rgb(255, 0, 0);
   margin: 0 4px;
+}
+
+/*
+  post info
+*/
+.postInfoHeader {
+  margin: 0;
+  margin-left: 4px;
+  color: rgb(168, 168, 168);
+  font-weight: 600;
+}
+
+.postInfoText {
+  margin: 0;
+  margin-left: 4px;
+}
+
+.postInfoIcon {
+  width: 50px;
+  height: 50px;
+  margin: 2px;
+  border-radius: 12px;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.postInfoMenu {
+  max-width: calc(876px - var(--post-width) / 2);
 }
 
 /* poll */
@@ -1056,20 +1108,6 @@ tab.selected {
 /*
   settings page
 */
-.settingsItem {
-  position: relative;
-}
-
-.settingsItem p {
-  line-height: 30px;
-}
-
-.settingsItem switch {
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-
 .settingsButton {
   width: 100%;
 }
@@ -1126,4 +1164,28 @@ tab.selected {
 
 .aboutContributor {
   margin: 10px;
+}
+
+/*
+  create page
+*/
+.createInput {
+  width: 100% !important;
+}
+
+.createRating {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.createText {
+  margin: 0;
+  margin-left: 4px;
+}
+
+.createHeader {
+  margin: 0;
+  margin-left: 4px;
+  font-weight: 600;
+  color: rgb(168, 168, 168);
 }

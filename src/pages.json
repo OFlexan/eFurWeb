@@ -74,13 +74,13 @@
                 },
                 {
                   "tagName": "p",
-                  "innerText": "Settings",
-                  "reference": "settings"
+                  "innerText": "About & support",
+                  "reference": "about"
                 },
                 {
                   "tagName": "p",
-                  "innerText": "About & support",
-                  "reference": "about"
+                  "innerText": "Settings",
+                  "reference": "settings"
                 }
               ]
             }
@@ -720,37 +720,6 @@
       }
     ]
   },
-  "settings": {
-    "body": [
-      {
-        "tagName": "div",
-        "className": "previewContainer settings",
-        "children": [
-          {
-            "tagName": "div",
-            "className": "settingsItem",
-            "children": [
-              {
-                "tagName": "p",
-                "innerText": "Preview features"
-              },
-              {
-                "tagName": "switch",
-                "className": "notext",
-                "reference": "preview_features"
-              }
-            ]
-          },
-          {
-            "tagName": "button",
-            "className": "settingsButton",
-            "innerText": "Log out",
-            "reference": "logout"
-          }
-        ]
-      }
-    ]
-  },
   "about": {
     "body": [
       {
@@ -906,6 +875,232 @@
             "tagName": "p",
             "innerText": "Site version 1.0.0 | App version 1.21.1 (104) © eFur 2023 | All Rights Reserved",
             "className": "aboutInfo aboutCenter"
+          }
+        ]
+      }
+    ]
+  },
+  "settings": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "previewContainer settings",
+        "children": [
+          {
+            "tagName": "div",
+            "className": "htmlOption",
+            "children": [
+              {
+                "tagName": "p",
+                "innerText": "Preview features"
+              },
+              {
+                "tagName": "switch",
+                "reference": "preview_features"
+              }
+            ]
+          },
+          {
+            "tagName": "div",
+            "className": "htmlOption",
+            "children": [
+              {
+                "tagName": "p",
+                "innerText": "Disable post info (increases speed)"
+              },
+              {
+                "tagName": "switch",
+                "reference": "disable_post_info"
+              }
+            ]
+          },
+          {
+            "tagName": "div",
+            "className": "htmlOption",
+            "children": [
+              {
+                "tagName": "p",
+                "innerText": "Post width: >[post_width]<",
+                "reference": "post_width"
+              },
+              {
+                "tagName": "input",
+                "className": "notext",
+                "min": "2",
+                "max": "5",
+                "value": ">[post_width_value]<",
+                "type": "range",
+                "reference": "post_width_slider"
+              }
+            ]
+          },
+          {
+            "tagName": "button",
+            "className": "settingsButton",
+            "innerText": "Log out",
+            "reference": "logout"
+          }
+        ]
+      }
+    ]
+  },
+  "create": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "previewContainer htmlHasHeader createContainer",
+        "children": [
+          {
+            "tagName": "p",
+            "className": "createHeader",
+            "innerText": "Content"
+          },
+          {
+            "tagName": "textarea",
+            "className": "createInput",
+            "placeholder": "Text post content",
+            "reference": "post_content"
+          },
+          {
+            "tagName": "input",
+            "className": "createInput",
+            "type": "text",
+            "placeholder": "Post title",
+            "reference": "post_title"
+          },
+          {
+            "tagName": "input",
+            "className": "createInput",
+            "type": "text",
+            "placeholder": "Post description",
+            "reference": "post_description"
+          },
+
+          {
+            "tagName": "p",
+            "className": "createHeader",
+            "innerText": "Filtering"
+          },
+          {
+            "tagName": "p",
+            "className": "createText",
+            "innerText": "This post is rated:"
+          },
+          {
+            "tagName": "div",
+            "className": "createRating",
+            "children": [
+              {
+                "tagName": "radio",
+                "name": "rating",
+                "innerText": "Safe"
+              },
+              {
+                "tagName": "radio",
+                "name": "rating",
+                "innerText": "Suggestive"
+              },
+              {
+                "tagName": "radio",
+                "name": "rating",
+                "innerText": "Explicit"
+              }
+            ]
+          },
+          
+          {
+            "tagName": "p",
+            "className": "createHeader",
+            "innerText": "Categories"
+          },
+          
+          {
+            "tagName": "p",
+            "className": "createHeader",
+            "innerText": "Details"
+          },
+          {
+            "tagName": "input",
+            "className": "createInput",
+            "type": "text",
+            "placeholder": "Original creator/artist",
+            "reference": "post_artist"
+          },
+          {
+            "tagName": "input",
+            "className": "createInput",
+            "type": "text",
+            "placeholder": "Link to source (https://...)",
+            "reference": "post_source"
+          },
+          
+          {
+            "tagName": "p",
+            "className": "createHeader",
+            "innerText": "Tags"
+          },
+          {
+            "tagName": "p",
+            "className": "createText",
+            "innerText": "Add up to 100 tags describing the post"
+          },
+          {
+            "tagName": "input",
+            "className": "createInput",
+            "type": "text",
+            "placeholder": "Enter a tag",
+            "reference": "post_tag"
+          },
+          
+          {
+            "tagName": "p",
+            "className": "createHeader",
+            "innerText": "Options"
+          },
+          {
+            "tagName": "div",
+            "className": "htmlOption",
+            "children": [
+              {
+                "tagName": "p",
+                "innerText": "Hide post from Feed"
+              },
+              {
+                "tagName": "switch",
+                "reference": "post_hide"
+              }
+            ]
+          },
+          {
+            "tagName": "div",
+            "className": "htmlOption",
+            "children": [
+              {
+                "tagName": "p",
+                "innerText": "Prevent downloads"
+              },
+              {
+                "tagName": "switch",
+                "reference": "post_prevent"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tagName": "div",
+        "className": "htmlHeader",
+        "children": [
+          {
+            "tagName": "p",
+            "className": "htmlBack androidIcon",
+            "reference": "html_back",
+            "innerText": "arrow_back"
+          },
+          {
+            "tagName": "p",
+            "className": "htmlText",
+            "innerText": "Create >[type]<"
           }
         ]
       }
