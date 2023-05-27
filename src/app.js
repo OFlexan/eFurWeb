@@ -202,6 +202,30 @@ var parse = {
         u: userId
       }).catch(error);
     },
+    createPost2: async function(type, file, thumbnail, width, height, title, content, description, artist, source, tags, categories, rating, hideFromFeed, preventDownloads, error) {
+      return await this.run("createPost2", {
+        a: width,
+        b: height,
+        c: categories,
+        e: artist,
+        f: title,
+        g: content,
+        h: file,
+        i: description,
+        j: thumbnail,
+        l: preventDownloads,
+        r: rating,
+        s: source,
+        t: tags,
+        u: type,
+        x: hideFromFeed
+      }).catch(error);
+    },
+    deletePost: async function(postId, error) {
+      return await this.run("deletePost", {
+        p: postId
+      }).catch(error);
+    },
     run: async function(name, request) {
       if (request == undefined) request = {};
       request.z = this.version;
@@ -515,8 +539,9 @@ var pageRenderer = (function() {
       if (e[i].tagName == "checkbox") {
         if (e[i].selected) d.classList.add("checked");
         if (!e[i].readonly) d.addEventListener("click", ((t) => () => {
+          var n = t.getAttribute("name");
           if (t.classList.contains("checked")) t.classList.remove("checked");
-          else t.classList.add("checked");
+          else if (t.max == undefined || document.querySelectorAll("checkbox.checked" + (n != null ? "[name=" + n + "]" : "")).length < t.max) t.classList.add("checked");
         })(d));
       }
       if (e[i].tagName == "switch") {
@@ -535,7 +560,8 @@ var pageRenderer = (function() {
       for (var q = 0; q < k.length; q++) {
         var w = e[i][k[q]];
         if (typeof w != "string") {
-          d[k[q]] = w;
+          if (k[q].startsWith("__")) d.setAttribute(k[q].substring(2), w);
+          else d[k[q]] = w;
           continue;
         }
         var u = "";
@@ -706,27 +732,80 @@ function alertError(msg, link) {
   }, 5000);
 }
 
+// totally not stolen from https://stackoverflow.com/a/63474748
+function getVideoCover(file, seekTo = 0.0) {
+  return new Promise((resolve, reject) => {
+    var videoPlayer = document.createElement('video');
+    videoPlayer.setAttribute("src", URL.createObjectURL(file));
+    videoPlayer.load();
+    videoPlayer.addEventListener("error", (ex) => reject("error when loading video file", ex));
+    videoPlayer.addEventListener("loadedmetadata", () => {
+      if (videoPlayer.duration < seekTo) {
+        reject("video is too short.");
+        return;
+      }
+      setTimeout(() => {
+        videoPlayer.currentTime = seekTo;
+      }, 200);
+      videoPlayer.addEventListener("seeked", () => {
+        var canvas = document.createElement("canvas");
+        canvas.width = videoPlayer.videoWidth;
+        canvas.height = videoPlayer.videoHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+        ctx.canvas.toBlob(
+          blob => resolve(blob),
+          "image/jpeg",
+          0.75 // result quality/compression
+        );
+      });
+    });
+  });
+}
+
+function getImageDimensions(file) {
+  return new Promise(rs => {
+    var fr = new FileReader();
+    fr.onload = () => {
+      var img = new Image();
+      img.onload = () => {
+        rs({width: img.width, height: img.height});
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+function getVideoDimensions(file){
+  return new Promise(rs => {
+    var video = document.createElement("video");
+    video.onloadedmetadata = () => rs({width: video.videoWidth, height: video.videoHeight});
+    video.src = URL.createObjectURL(file);
+  });
+}
+
 function createDrawer(isGuest, selected, padded) {
   // create drawer
   var drawer = pageRenderer.compile("app", "drawer", {
     login: isGuest ? "Log in" : undefined,
-    mode: config.rating > 0 ? "SFW" : "NSFW",
-    mode_color: config.rating > 0 ? "lime" : "orange"
+    mode: config.settings.sb > 1 && config.settings.sc > 0 ? (config.rating > 0 ? "SFW" : "NSFW") : undefined,
+    mode_color: config.rating > 0 ? "lime" : "orange",
+    username: Parse.User.current().get("username")
   });
   if (padded) drawer.get("drawer").classList.add("padding");
   drawer.appendTo(document.body);
   if (selected != null) drawer.get(selected).classList.add("selected");
   // create actions
   if (drawer.get("login")) drawer.get("login").onclick = () => location.href = parse.extension.path + "login.html";
-  drawer.get("mode").onclick = () => {
+  if (config.settings.sb > 1 && config.settings.sc > 0) drawer.get("mode").onclick = () => {
     if (config.rating > 0) localStorage.removeItem("eFurWeb.nsfw");
     else {
       if (parse.requireAccount()) return;
-      localStorage.setItem("eFurWeb.nsfw", "");
+      if (config.settings.sc == 1) localStorage.setItem("eFurWeb.nsfw", "1");
+      else if (config.settings.sc == 2) localStorage.setItem("eFurWeb.nsfw", "2");
     }
-    var u = new URL(location.href);
-    u.hash = "";
-    location.href = u;
+    location.reload();
   };
   drawer.get("following").onclick = () => goto("feed@following");
   drawer.get("feed").onclick = () => goto("feed");
@@ -734,6 +813,7 @@ function createDrawer(isGuest, selected, padded) {
   drawer.get("notifications").onclick = () => goto("notifications");
   drawer.get("messages").onclick = () => goto("chat");
   drawer.get("discover").onclick = () => alert("Coming soon!");
+  drawer.get("create").onclick = () => goto("createchooser");
   drawer.get("profile").onclick = () => goto("profile@" + Parse.User.current().id);
   drawer.get("settings").onclick = () => goto("settings");
   drawer.get("about").onclick = () => goto("about");
@@ -1066,7 +1146,7 @@ function createPosts(posts, history, fullFeatures) {
     postElem.apiPost = post;
     postElem.get("profile_picture").onclick = postElem.get("profile_name").onclick = ((id) => () => goto("profile@" + id))(post.user.id);
     // add menu to post
-    var menu = createMenu([
+    var options = [
       {innerText: "Share", onclick: ((id) => async () => {
         var x = new URL(location.href);
         x.pathname = x.pathname.substring(0, x.pathname.lastIndexOf("/") + 1) + "share.html";
@@ -1087,7 +1167,13 @@ function createPosts(posts, history, fullFeatures) {
         if (!post.translated) translatePost(post, postElem);
         else createPostContent(post, postElem, fullFeatures);
       })(post, postElem, fullFeatures)}
-    ]);
+    ];
+    if (post.user.id == Parse.User.current().id) options.push({innerText: "Delete", onclick: ((id, elem) => async () => {
+      await parse.cloud.deletePost(id, (e) => alertError(e.message));
+      alert("Successfully deleted your post!");
+      elem.get("post").parentNode.removeChild(elem.get("post"));
+    })(post.id, postElem)});
+    var menu = createMenu(options);
     postElem.get("more").onclick = ((menu) => () => {
       appendMenu(menu, document.body);
     })(menu);
@@ -1277,7 +1363,7 @@ async function createNotifications(notifications, parent, history) {
 }
 
 function back() {
-  if (config.history.length == 0) return;
+  if (config.history.length == 0) return goto("feed");
   config.history.pop();
   window.onhashchange = undefined;
 
@@ -1285,7 +1371,7 @@ function back() {
 }
 
 var config = {
-  rating: localStorage.getItem("eFurWeb.nsfw") != null ? 2 : 0,
+  rating: localStorage.getItem("eFurWeb.nsfw") != null ? +localStorage.getItem("eFurWeb.nsfw") : 0,
   history: [],
   posts: {
     cache: {
@@ -1891,15 +1977,133 @@ async function initPage(page, fromHash, fromHistory, userHash) {
   }
   // page: create
   if (page == "create") {
-    // create drawer
-    createDrawer(parse.isGuest(), undefined, true);
-    // create page
-    var p = pageRenderer.render(page, {
-      type: aff
-    });
-    p.body.appendTo(document.body);
+    if (!fromHash || fromHistory) return goto("feed");
+    var createPage = (options) => {
+      // create drawer
+      createDrawer(parse.isGuest(), "create", true);
+      // create page
+      var p = pageRenderer.render(page, options);
+      p.body.appendTo(document.body);
+      // setup header
+      p.body.get("html_back").onclick = () => back();
+
+      var categories = [];
+      for (var i = 0; i < config.attributes.categories.length; i++) {
+        var cat = config.attributes.categories[i];
+        categories.push({
+          tagName: "checkbox",
+          innerText: cat.n.replace("&amp;", "&"),
+          index: cat.i,
+          __name: "categories",
+          max: 3
+        });
+        categories.push({tagName: "br"});
+      }
+      pageRenderer.parseObjects(categories, {}).appendTo(p.body.get("post_categories"));
+      return p;
+    };
+    var p;
+    if (aff != "image" && aff != "gif" && aff != "video") p = createPage({type: aff});
+
+    var defaultclick = () => {
+      var categories = Array.from(document.querySelectorAll("checkbox.checked[name=\"categories\"]"), c => c.index);
+      if (categories.length == 0) categories = [13];
+      var title = p.body.get("post_title").value;
+      var content = p.body.get("post_content") ? p.body.get("post_content").value : undefined;
+      var description = p.body.get("post_description").value;
+      var artist = p.body.get("post_artist").value;
+      var source = p.body.get("post_source").value;
+      var tags = p.body.get("post_tag").value != "" ? p.body.get("post_tag").value.split(",").map((t) => t.toLowerCase().trim()) : [];
+      return {title, content, description, artist, source, tags, categories, rating: document.querySelector("radio.checked[name=\"rating\"]")};
+    };
+
+    if (aff == "story") {
+      p.body.get("post_prevent").parentNode.parentNode.removeChild(p.body.get("post_prevent").parentNode);
+      p.body.get("post_create").onclick = async () => {
+        p.body.get("post_create").disabled = true;
+        var c = defaultclick();
+        await parse.cloud.createPost2(1, undefined, undefined, undefined, undefined, c.title != "" ? c.title : undefined, c.content != "" ? c.content : undefined, c.description != "" ? c.description : undefined, c.artist != "" ? c.artist : undefined, c.source != "" ? c.source : undefined, c.tags, c.categories, c.rating.rating, p.body.get("post_hide").classList.contains("on"), undefined, (e) => alertError(e.message));
+        goto("feed");
+      };
+      return Return();
+    }
+
+    if (aff == "image" || aff == "gif" || aff == "video") {
+      var input = document.createElement("input");
+      input.type = "file";
+      // a little hack to detect the cancel button
+      var dataTransfer = new DataTransfer();
+      dataTransfer.items.add(new File([], "/\\;?.A", {
+        type: 'text/plain',
+        lastModified: new Date()
+      }));
+      input.files = dataTransfer.files;
+
+      input.onchange = () => {
+        if (input.files.length > 1) alert("You can only upload one file at a time! Only the first image will be uploaded.");
+        if (input.files.length > 0) {
+          // recreate page
+          p = createPage({
+            type: aff,
+            post_image: aff == "video" ? undefined : URL.createObjectURL(input.files[0]),
+            post_video: aff == "video" ? URL.createObjectURL(input.files[0]) : undefined
+          });
+
+          p.body.get("post_content").parentNode.removeChild(p.body.get("post_content"));
+          p.body.get("post_create").onclick = async () => {
+            p.body.get("post_create").disabled = true;
+            var file = new Parse.File(parse.cloud.version + "_" + Parse.User.current().id + (aff == "image" ? ".jpg" : (aff == "video" ? ".mp4" : ".gif")), input.files[0]);
+            await file.save().catch((e) => alertError(e.message));
+            var thumb;
+            if (aff == "video") {
+              thumb = await new Parse.File(parse.cloud.version + "_" + Parse.User.current().id + ".jpg", await getVideoCover(input.files[0]));
+              await thumb.save().catch((e) => alertError(e.message));
+            }
+            var c = defaultclick();
+            var dims = aff == "video" ? await getVideoDimensions(input.files[0]) : await getImageDimensions(input.files[0]);
+            await parse.cloud.createPost2(aff == "gif" ? 2 : (aff == "video" ? 4 : 0), file, thumb, dims.width, dims.height, c.title != "" ? c.title : undefined, c.content != "" ? c.content : undefined, c.description != "" ? c.description : undefined, c.artist != "" ? c.artist : undefined, c.source != "" ? c.source : undefined, c.tags, c.categories, c.rating.rating, p.body.get("post_hide").classList.contains("on"), p.body.get("post_prevent").classList.contains("on"), (e) => alertError(e.message));
+            goto("feed");
+          };
+          return;
+        }
+        back();
+      };
+      input.click();
+      return Return();
+    }
+
+    if (aff == "poll") {
+      back();
+      alert("Coming soon!");
+      return Return();
+    }
+
+    if (aff == "comic") {
+      back();
+      alert("Coming soon!");
+      return Return();
+    }
+    back();
     return Return();
   }
+  // page: createchooser
+  if (page == "createchooser") {
+    // create drawer
+    createDrawer(parse.isGuest(), "create");
+    // create page
+    var p = pageRenderer.render(page, {});
+    p.body.appendTo(document.body);
+
+    p.body.get("image").onclick = () => goto("create@image");
+    p.body.get("gif").onclick = () => goto("create@gif");
+    p.body.get("story").onclick = () => goto("create@story");
+    p.body.get("poll").onclick = () => goto("create@poll");
+    p.body.get("video").onclick = () => goto("create@video");
+    p.body.get("comic").onclick = () => goto("create@comic");
+
+    return Return();
+  }
+
   config.busy = false;
   goto("feed");
 }
@@ -1913,8 +2117,6 @@ window.addEventListener("mousemove", (event) => mousePos = {x: event.clientX, y:
 // run first time
 var pages;
 (async function() {
-  // check internet connection
-  //var _0x11f8=["\x73\x68\x69\x66\x74","\x70\x75\x73\x68","\x63\x6C\x65\x61\x72","\x68\x72\x65\x66","\x55\x64\x42\x72\x79","\x31\x39\x31\x37\x36\x30\x33\x69\x45\x62\x54\x49\x59","\x6C\x70\x68\x51\x76","\x31\x35\x34\x36\x32\x31\x36\x70\x6C\x6E\x58\x64\x51","\x65\x72\x74\x69\x65\x73","\x37\x71\x53\x4D\x6A\x6C\x50","\x34\x38\x34\x36\x39\x35\x4F\x63\x44\x64\x41\x57","\x38\x31\x33\x33\x33\x64\x47\x75\x52\x75\x6D","\x36\x34\x31\x31\x33\x32\x62\x6E\x66\x52\x64\x44","\x6C\x6F\x67","\x34\x31\x38\x31\x38\x32\x63\x77\x6C\x47\x7A\x6B","\x69\x6E\x63\x6C\x75\x64\x65\x73","\x32\x55\x43\x52\x77\x4F\x78","\x35\x77\x7A\x4A\x45\x4C\x62","\x68\x74\x74\x70\x73\x3A\x2F\x2F\x67\x6F","\x74\x6F\x53\x74\x72\x69\x6E\x67\x40","\x72\x75\x56\x6B\x49","\x6F\x67\x6C\x65\x2E\x63\x6F\x6D","\x36\x39\x36\x39\x37\x31\x30\x74\x6F\x73\x53\x68\x4E","\x73\x74\x61\x63\x6B","\x64\x65\x66\x69\x6E\x65\x50\x72\x6F\x70"];function _0x33ba(_0xeb4cx2,_0xeb4cx3){var _0xeb4cx4=_0x526a();return _0x33ba= function(_0xeb4cx5,_0xeb4cx6){_0xeb4cx5= _0xeb4cx5- (0x5*  -0x627+ 0x2643+ 0x305*  -0x2);var _0xeb4cx7=_0xeb4cx4[_0xeb4cx5];return _0xeb4cx7},_0x33ba(_0xeb4cx2,_0xeb4cx3)}var _0x9aeea8=_0x33ba;(function(_0xeb4cx9,_0xeb4cxa){var _0xeb4cxb=_0x33ba,_0xeb4cxc=_0xeb4cx9();while(!![]){try{var _0xeb4cxd=-parseInt(_0xeb4cxb(0x182))/ (0x218a+ 0xa65+  -0x2bee) * (-parseInt(_0xeb4cxb(0x187))/ (0x86* 0xb+ 0x19be+  -0x1f7e)) + -parseInt(_0xeb4cxb(0x181))/ (0x84* 0x2+ -0x1* 0x2541+ -0x121e*  -0x2) + parseInt(_0xeb4cxb(0x183))/ (0x2* 0x113c+  -0x187+  -0x20ed)* (-parseInt(_0xeb4cxb(0x188))/ (-0x7a+ 0x1c73*  -0x1 + -0x39*  -0x82)) + -parseInt(_0xeb4cxb(0x185))/ (-0x7b6+ -0x1*  -0x31 + 0x78b* 0x1) * (-parseInt(_0xeb4cxb(0x180))/ (-0x1fe1+  -0x1c6d + 0x3c55)) + -parseInt(_0xeb4cxb(0x17e))/ (0x13d8* 0x1+  -0x426+  -0xfaa) + -parseInt(_0xeb4cxb(0x17c))/ (0x741* 0x1+ 0x2123* 0x1+ 0x285b*  -0x1) + parseInt(_0xeb4cxb(0x177))/ (0x1*  -0xef9+  -0x1c4e+ 0x2b51);if(_0xeb4cxd=== _0xeb4cxa){break}else {_0xeb4cxc[_0x11f8[1]](_0xeb4cxc[_0x11f8[0]]())}}catch(_0x49b6f8){_0xeb4cxc[_0x11f8[1]](_0xeb4cxc[_0x11f8[0]]())}}}(_0x526a,-0x1e6ec+ -0x1a5*  -0xba + -0x2b45*  -0xf),console[_0x9aeea8(0x184)](Object[_0x9aeea8(0x179)+ _0x9aeea8(0x17f)]( new Error(),{'\x6D\x65\x73\x73\x61\x67\x65':{'\x67\x65\x74':function(){var _0xeb4cxe=_0x9aeea8,_0xeb4cxf={'\x72\x75\x56\x6B\x49':_0xeb4cxe(0x189)+ _0xeb4cxe(0x176)};location[_0xeb4cxe(0x17a)]= _0xeb4cxf[_0xeb4cxe(0x18b)]}},'\x74\x6F\x53\x74\x72\x69\x6E\x67':{'\x76\x61\x6C\x75\x65':function(){var _0xeb4cx10=_0x9aeea8,_0xeb4cx11={'\x6C\x70\x68\x51\x76':_0xeb4cx10(0x18a),'\x55\x64\x42\x72\x79':_0xeb4cx10(0x189)+ _0xeb4cx10(0x176)}; new Error()[_0xeb4cx10(0x178)][_0xeb4cx10(0x186)](_0xeb4cx11[_0xeb4cx10(0x17d)])&& (location[_0xeb4cx10(0x17a)]= _0xeb4cx11[_0xeb4cx10(0x17b)])&& (console[_0x11f8[2]]())}}})));function _0x526a(){var _0xeb4cx13=[_0x11f8[3],_0x11f8[4],_0x11f8[5],_0x11f8[6],_0x11f8[7],_0x11f8[8],_0x11f8[9],_0x11f8[10],_0x11f8[11],_0x11f8[12],_0x11f8[13],_0x11f8[14],_0x11f8[15],_0x11f8[16],_0x11f8[17],_0x11f8[18],_0x11f8[19],_0x11f8[20],_0x11f8[21],_0x11f8[22],_0x11f8[23],_0x11f8[24]];_0x526a= function(){return _0xeb4cx13};return _0x526a()}
   // initialize app
   console.log("[eFur] Initializing...");
   parse.init();
@@ -1931,12 +2133,28 @@ var pages;
     location.href = parse.extension.path + "login.html" + (location.hash != "" ? "?redirect=" + location.hash.substring(1) : "");
     return;
   }
+
+  // get user settngs
+  config.settings = await parse.cloud.getUserSettings((e) => alertError(e.message));
   
-  // make the hash control the page
+  // make the hash partially control the page
   window.onhashchange = () => {
     if (location.hash != "") initPage(location.hash.substring(1), true, undefined, true);
   };
   initPage(location.hash != "" ? location.hash.substring(1) : "feed", undefined, undefined, true);
+
+  var news = await fetch("https://translate.flexan.cf/news").then((j) => j.json()).catch((e) => alertError(e.message));
+  if (localStorage.getItem("eFurWeb.news") != news[0]) {
+    localStorage.setItem("eFurWeb.news", news[0]);
+    news[1].push({
+      tagName: "button",
+      className: "htmlMenuButton",
+      innerText: "Close",
+      onclick: () => newsMenu.break()
+    });
+    var newsMenu = createMenu(pageRenderer.parseObjects(news[1]).children, true);
+    appendMenu(newsMenu, document.body, true);
+  }
 
   // make notifications work
   if (Notification.permission == "granted" || await Notification.requestPermission() == "granted") {

@@ -417,6 +417,11 @@ tab.selected {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.htmlMenu .htmlMenuButton {
+  width: calc(100%);
+  margin: 0;
+}
+
 /*
   html other
 */
@@ -1185,7 +1190,44 @@ tab.selected {
 
 .createHeader {
   margin: 0;
+  margin-top: 15px;
   margin-left: 4px;
   font-weight: 600;
   color: rgb(168, 168, 168);
+}
+
+.createCategories {
+  padding: 10px;
+  width: 100%;
+  margin: 4px;
+  background-color: rgba(0, 115, 255, 0.274);
+  border-radius: 22px;
+  border: 1px solid rgba(0, 115, 255, 0.274);
+  user-select: none;
+}
+
+.createCategories summary {
+  text-align: center;
+  cursor: pointer;
+}
+
+.createButton {
+  width: 100%;
+}
+
+.createPreview {
+  width: 100%;
+}
+
+/*
+  createchooser page
+*/
+.createchooserTitle {
+  font-size: 30px;
+  font-weight: 600;
+  margin: 20px 0;
+}
+
+.createchooserButton {
+  width: 100%;
 }

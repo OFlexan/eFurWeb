@@ -21,6 +21,7 @@
                   "tagName": "p",
                   "innerText": "Switch to >[mode]<",
                   "style": "border: 1px solid >[mode_color]<",
+                  "equals": "mode",
                   "reference": "mode"
                 },
                 {
@@ -69,7 +70,12 @@
               "children": [
                 {
                   "tagName": "p",
-                  "innerText": "My profile",
+                  "innerText": "Create",
+                  "reference": "create"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "Profile (>[username]<)",
                   "reference": "profile"
                 },
                 {
@@ -948,18 +954,34 @@
     "body": [
       {
         "tagName": "div",
-        "className": "previewContainer htmlHasHeader createContainer",
+        "className": "previewContainer htmlHasHeader",
         "children": [
+          {
+            "tagName": "img",
+            "className": "createPreview",
+            "src": ">[post_image]<",
+            "reference": "post_image",
+            "equals": "post_image"
+          },
+          {
+            "tagName": "video",
+            "className": "createPreview",
+            "__loop": true,
+            "__controls": true,
+            "reference": "post_video",
+            "equals": "post_video",
+            "children": [
+              {
+                "tagName": "source",
+                "src": ">[post_video]<",
+                "type": "video/mp4"
+              }
+            ]
+          },
           {
             "tagName": "p",
             "className": "createHeader",
             "innerText": "Content"
-          },
-          {
-            "tagName": "textarea",
-            "className": "createInput",
-            "placeholder": "Text post content",
-            "reference": "post_content"
           },
           {
             "tagName": "input",
@@ -967,6 +989,12 @@
             "type": "text",
             "placeholder": "Post title",
             "reference": "post_title"
+          },
+          {
+            "tagName": "textarea",
+            "className": "createInput",
+            "placeholder": "Post content",
+            "reference": "post_content"
           },
           {
             "tagName": "input",
@@ -992,17 +1020,21 @@
             "children": [
               {
                 "tagName": "radio",
-                "name": "rating",
+                "className": "checked",
+                "__name": "rating",
+                "rating": 0,
                 "innerText": "Safe"
               },
               {
                 "tagName": "radio",
-                "name": "rating",
+                "__name": "rating",
+                "rating": 1,
                 "innerText": "Suggestive"
               },
               {
                 "tagName": "radio",
-                "name": "rating",
+                "__name": "rating",
+                "rating": 2,
                 "innerText": "Explicit"
               }
             ]
@@ -1012,6 +1044,17 @@
             "tagName": "p",
             "className": "createHeader",
             "innerText": "Categories"
+          },
+          {
+            "tagName": "details",
+            "classList": "createCategories",
+            "reference": "post_categories",
+            "children": [
+              {
+                "tagName": "summary",
+                "innerText": "Categories"
+              }
+            ]
           },
           
           {
@@ -1042,13 +1085,13 @@
           {
             "tagName": "p",
             "className": "createText",
-            "innerText": "Add up to 100 tags describing the post"
+            "innerText": "Add up to 100 tags describing the post (seperated by commas)"
           },
           {
             "tagName": "input",
             "className": "createInput",
             "type": "text",
-            "placeholder": "Enter a tag",
+            "placeholder": "Enter tags",
             "reference": "post_tag"
           },
           
@@ -1084,6 +1127,12 @@
                 "reference": "post_prevent"
               }
             ]
+          },
+          {
+            "tagName": "button",
+            "className": "createButton",
+            "innerText": "Create",
+            "reference": "post_create"
           }
         ]
       },
@@ -1101,6 +1150,57 @@
             "tagName": "p",
             "className": "htmlText",
             "innerText": "Create >[type]<"
+          }
+        ]
+      }
+    ]
+  },
+  "createchooser": {
+    "body": [
+      {
+        "tagName": "div",
+        "className": "previewContainer",
+        "children": [
+          {
+            "tagName": "p",
+            "className": "createchooserTitle",
+            "innerText": "Choose type"
+          },
+          {
+            "tagName": "button",
+            "className": "createchooserButton",
+            "innerText": "Story",
+            "reference": "story"
+          },
+          {
+            "tagName": "button",
+            "className": "createchooserButton",
+            "innerText": "Poll",
+            "reference": "poll"
+          },
+          {
+            "tagName": "button",
+            "className": "createchooserButton",
+            "innerText": "Image",
+            "reference": "image"
+          },
+          {
+            "tagName": "button",
+            "className": "createchooserButton",
+            "innerText": "GIF",
+            "reference": "gif"
+          },
+          {
+            "tagName": "button",
+            "className": "createchooserButton",
+            "innerText": "Video",
+            "reference": "video"
+          },
+          {
+            "tagName": "button",
+            "className": "createchooserButton",
+            "innerText": "Comic",
+            "reference": "comic"
           }
         ]
       }
