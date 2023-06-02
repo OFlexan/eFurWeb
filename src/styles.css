@@ -1228,6 +1228,81 @@ tab.selected {
   margin: 20px 0;
 }
 
+.createchooserSplit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .createchooserButton {
-  width: 100%;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  margin: 0;
+  margin-top: 0;
+  padding: 20px;
+  font-size: 20px;
+  width: calc(100% - 40px);
+  text-align: center;
+  cursor: pointer;
+}
+
+.createchooserButton:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.createchooserButton .androidIconFill {
+  display: inline-block;
+  text-align: center;
+  margin: 0;
+  transform: translateY(3px);
+}
+
+.createchooserText {
+  margin: 0;
+  margin-left: 5px;
+}
+
+.createchooserPad {
+  margin-top: 10px;
+}
+/* comics */
+.createchooserComicImage {
+  float: left;
+  width: 96px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  transform: translate(-10px, -10px);
+}
+
+.createchooserComic {
+  min-height: 100px;
+  text-align: left;
+}
+
+.createchooserComic p {
+  color: rgb(168, 168, 168);
+  margin: 0;
+}
+
+.createchooserComicTitle {
+  display: inline;
+  color: white !important;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.createchooserComicDraft {
+  display: inline;
+  position: relative;
+  left: 6px;
+  border-radius: 4px;
+  padding: 0 4px;
+  color: rgb(168, 168, 168) !important;
+  background-color: rgb(31, 36, 43);
+}
+
+.createchooserComicInfo {
+  color: rgb(104, 104, 104) !important;
+  font-size: 16px;
 }

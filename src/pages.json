@@ -1160,50 +1160,170 @@
       {
         "tagName": "div",
         "className": "previewContainer",
+        "reference": "container",
         "children": [
           {
             "tagName": "p",
             "className": "createchooserTitle",
-            "innerText": "Choose type"
+            "innerText": "Create"
           },
           {
-            "tagName": "button",
-            "className": "createchooserButton",
-            "innerText": "Story",
-            "reference": "story"
+            "tagName": "div",
+            "className": "createchooserSplit",
+            "children": [
+              {
+                "tagName": "p",
+                "className": "createchooserButton",
+                "children": [
+                  {
+                    "tagName": "span",
+                    "className": "androidIconFill",
+                    "innerText": "format_size"
+                  },
+                  {
+                    "tagName": "span",
+                    "className": "createchooserText",
+                    "innerText": "Story"
+                  }
+                ],
+                "reference": "story"
+              },
+              {
+                "tagName": "p",
+                "className": "createchooserButton",
+                "children": [
+                  {
+                    "tagName": "span",
+                    "className": "androidIconFill",
+                    "innerText": "poll"
+                  },
+                  {
+                    "tagName": "span",
+                    "className": "createchooserText",
+                    "innerText": "Poll"
+                  }
+                ],
+                "reference": "poll"
+              },
+              {
+                "tagName": "p",
+                "className": "createchooserButton",
+                "children": [
+                  {
+                    "tagName": "span",
+                    "className": "androidIconFill",
+                    "innerText": "image"
+                  },
+                  {
+                    "tagName": "span",
+                    "className": "createchooserText",
+                    "innerText": "Image"
+                  }
+                ],
+                "reference": "image"
+              },
+              {
+                "tagName": "p",
+                "className": "createchooserButton",
+                "children": [
+                  {
+                    "tagName": "span",
+                    "className": "androidIconFill",
+                    "innerText": "gif"
+                  },
+                  {
+                    "tagName": "span",
+                    "className": "createchooserText",
+                    "innerText": "GIF"
+                  }
+                ],
+                "reference": "gif"
+              }
+            ]
           },
           {
-            "tagName": "button",
-            "className": "createchooserButton",
-            "innerText": "Poll",
-            "reference": "poll"
-          },
-          {
-            "tagName": "button",
-            "className": "createchooserButton",
-            "innerText": "Image",
-            "reference": "image"
-          },
-          {
-            "tagName": "button",
-            "className": "createchooserButton",
-            "innerText": "GIF",
-            "reference": "gif"
-          },
-          {
-            "tagName": "button",
-            "className": "createchooserButton",
-            "innerText": "Video",
+            "tagName": "p",
+            "className": "createchooserButton createchooserPad",
+            "children": [
+              {
+                "tagName": "span",
+                "className": "androidIconFill",
+                "innerText": "videocam"
+              },
+              {
+                "tagName": "span",
+                "className": "createchooserText",
+                "innerText": "Video"
+              }
+            ],
             "reference": "video"
           },
           {
-            "tagName": "button",
+            "tagName": "p",
+            "className": "createchooserTitle",
+            "innerText": "My comics"
+          },
+          {
+            "tagName": "p",
             "className": "createchooserButton",
-            "innerText": "Comic",
+            "children": [
+              {
+                "tagName": "span",
+                "className": "androidIconFill",
+                "innerText": "add"
+              },
+              {
+                "tagName": "span",
+                "className": "createchooserText",
+                "innerText": "New"
+              }
+            ],
             "reference": "comic"
           }
         ]
       }
-    ]
+    ],
+    "template": {
+      "comic": [
+        {
+          "tagName": "p",
+          "className": "createchooserButton createchooserPad",
+          "reference": "comic",
+          "children": [
+            {
+              "tagName": "img",
+              "className": "createchooserComicImage",
+              "src": ">[thumbnail]<"
+            },
+            {
+              "tagName": "div",
+              "className": "createchooserComic",
+              "children": [
+                {
+                  "tagName": "p",
+                  "className": "createchooserComicTitle",
+                  "innerText": ">[title]<"
+                },
+                {
+                  "tagName": "p",
+                  "className": "createchooserComicDraft",
+                  "innerText": "Draft",
+                  "equals": "draft"
+                },
+                {
+                  "tagName": "p",
+                  "innerText": "Pages: >[pages]<"
+                },
+                {
+                  "tagName": "p",
+                  "className": "createchooserComicInfo",
+                  "innerText": "Updated >[updated]< ago, created >[created]< ago"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
   }
 }

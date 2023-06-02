@@ -30,7 +30,11 @@ window.onload = function() {
     document.querySelector(".error").innerText = "";
     document.querySelector("button").disabled = true;
     var l = false;
-    await parse.reportContent(o["type"] == "post" ? 0 : 1, o["id"], document.querySelector("input[name=reason]:checked").value + ": " + document.querySelector("input[type=text]").value, (e) => {
+    var type;
+    if (o["type"] == "post") type = 0;
+    if (o["type"] == "comment") type = 1;
+    if (o["type"] == "user") type = 2;
+    await parse.reportContent(type, o["id"], document.querySelector("input[name=reason]:checked").value + ": " + document.querySelector("input[type=text]").value, (e) => {
       document.querySelector(".error").innerText = e.message;
       l = true;
     });

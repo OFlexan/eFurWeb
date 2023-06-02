@@ -1,8 +1,9 @@
 // custom Parse stuff
-Parse.ObjectQuery = function(id) {
+Parse.ObjectQuery = function(id, clazz) {
+  clazz = clazz ?? "_User"
   return {
     keys: function(keys) {
-      return fetch(Parse.serverURL + "/classes/_User", {
+      return fetch(Parse.serverURL + "/classes/" + clazz, {
         "body": JSON.stringify({
             where: {objectId: id},
             keys: keys.join(","),
@@ -78,6 +79,7 @@ var parse = {
     getNewPosts: async function(rating, timestamp, error) {
       return await this.run("getNewPosts", {
         d: timestamp,
+        u: Parse.User.current().id,
         r: rating
       }).catch(error);
     },
@@ -224,6 +226,14 @@ var parse = {
     deletePost: async function(postId, error) {
       return await this.run("deletePost", {
         p: postId
+      }).catch(error);
+    },
+    getComics: async function(error) {
+      return await this.run("getComics").catch(error);
+    },
+    createComic: async function(title, error) {
+      return await this.run("createComic", {
+        f: title
       }).catch(error);
     },
     run: async function(name, request) {
@@ -397,6 +407,15 @@ var parse = {
         createdAt: obj.createdAt,
         updatedAt: obj.updatedAt
       }
+      if (type == 4) return { // mentioned you in a comment
+        id: obj.id,
+        unknown_a: obj.get("a"),
+        user: this.user(obj.get("f")),
+        post: this.post(obj.get("p")),
+        type: type,
+        createdAt: obj.createdAt,
+        updatedAt: obj.updatedAt
+      }
       if (type == 5) return {
         id: obj.id,
         unknown_a: obj.get("a"),
@@ -460,6 +479,10 @@ var parse = {
         createdAt: obj.createdAt,
         updatedAt: obj.updatedAt
       };
+      if (!x) {
+        o.options = [];
+        return o;
+      }
       for (var i = 0; i < x.length; i++) {
         o.total_choices += obj.get("s" + i);
         o.votes.push(obj.get("s" + i));
@@ -511,6 +534,21 @@ var parse = {
         id: obj.id,
         follower: this.user(obj.get("f")),
         following: this.user(obj.get("t")),
+        createdAt: obj.createdAt,
+        updatedAt: obj.updatedAt
+      }
+    },
+    comic: function(obj) {
+      if (obj == undefined) return;
+      return {
+        id: obj.id,
+        unknown_a: obj.get("a"), //unknown int; seems 0
+        pageCount: obj.get("c"),
+        isDraft: obj.get("d"),
+        title: obj.get("f"),
+        pages: this.array(obj.get("p"), "post"),
+        thumbnail: this.post(obj.get("t")),
+        user: this.user(obj.get("u")),
         createdAt: obj.createdAt,
         updatedAt: obj.updatedAt
       }
@@ -2099,7 +2137,40 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     p.body.get("story").onclick = () => goto("create@story");
     p.body.get("poll").onclick = () => goto("create@poll");
     p.body.get("video").onclick = () => goto("create@video");
-    p.body.get("comic").onclick = () => goto("create@comic");
+    p.body.get("comic").onclick = () => {
+      var s = pageRenderer.parseObjects([
+        {tagName: "p", className: "htmlMenuTitle", innerText: "Create a new comic"},
+        {tagName: "input", type: "text", placeholder: "Name of the comic", reference: "content"},
+        {tagName: "br"},
+        {tagName: "button", innerText: "Create", reference: "create"}
+      ], {});
+      s.get("create").onclick = async function() {
+        this.disabled = true;
+        await parse.cloud.createComic(s.get("content").value, (e) => alertError(e.message));
+        goto("createchooser", true);
+      };
+      appendMenu(createMenu(s.children, true), document.body, true);
+    };
+
+    (async function() {
+      var comics = parse.parse.array(await parse.cloud.getComics((e) => alertError(e.message)), "comic");
+      if (config.history[config.history.length - 1].page == page) {
+        for (var i = 0; i < comics.length; i++) {
+          var comic = pageRenderer.compile(page, "comic", {
+            thumbnail: comics[i].thumbnail && (comics[i].thumbnail.type == 0 || comics[i].thumbnail.type == 2) ? comics[i].thumbnail.image.thumbnail : "res/default_background.png",
+            title: comics[i].title,
+            pages: comics[i].pageCount,
+            draft: comics[i].isDraft ? "" : undefined,
+            updated: formatTime(comics[i].updatedAt, 2),
+            created: formatTime(comics[i].createdAt, 2),
+          });
+          comic.get("comic").onclick = function() {
+            
+          };
+          comic.appendTo(p.body.get("container"));
+        }
+      }
+    })();
 
     return Return();
   }
