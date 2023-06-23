@@ -38,20 +38,17 @@ Parse.ObjectQuery = function(id, clazz) {
     }
   };
 };
+
 // initialize config
-var parse = {
+const app = {
   applicationId: "MiGt7yG9h5WAf7zXRsDHp",
+  root: "",
   init: function() {
     Parse.initialize(this.applicationId);
     Parse.serverURL = "https://api.efur.app/parse";
   },
   export: function() {
     return btoa(localStorage.getItem("Parse/" + this.applicationId + "/installationId")).replaceAll("=", "") + "." + btoa(Parse.User.current().get("sessionToken")).replaceAll("=", "");
-  },
-  extension: {
-    path: "./",
-    allowShare: true,
-    allowCustomWidth: true
   },
   isGuest: function() {
     return Parse.User.current().get("username").length == 25;
@@ -184,7 +181,7 @@ var parse = {
         u: userId
       }).catch(error);
     },
-    getGalleryFavPosts2: async function(userId, rating, timestamp, error) {
+    getGalleryFavPosts: async function(userId, rating, timestamp, error) {
       return await this.run("getGalleryFavPosts2", {
         d: timestamp,
         r: rating,
@@ -204,7 +201,7 @@ var parse = {
         u: userId
       }).catch(error);
     },
-    createPost2: async function(type, file, thumbnail, width, height, title, content, description, artist, source, tags, categories, rating, hideFromFeed, preventDownloads, error) {
+    createPost: async function(type, file, thumbnail, width, height, title, content, description, artist, source, tags, categories, rating, hideFromFeed, preventDownloads, error) {
       return await this.run("createPost2", {
         a: width,
         b: height,
@@ -556,7 +553,83 @@ var parse = {
   }
 };
 
-var pageRenderer = (function() {
+// set extension methods
+const ext = (function() {
+  var exts = [];
+  var ents = [];
+  return {
+    new: function(name) {
+      var pages = {};
+      var e = {
+        options: {
+          overridePages: false
+        },
+        name: function() {
+          return name;
+        },
+        onPage: function(page, action) {
+          pages[page] = action;
+        },
+        invoke: function(page, args) {
+          pages[page](args);
+        }
+      };
+      exts.push(e);
+      ents.push(e);
+      return e;
+    },
+    list: function() {
+      return exts.map((e) => e.name() + (!ents.includes(e) ? " [DISABLED]" : ""));
+    },
+    enable: function(name) {
+      for (var i = 0; i < exts.length; i++) {
+        if (exts[i].name() == name) {
+          if (ents.includes(exts[i])) return true;
+          ents.push(exts[i]);
+          return true;
+        }
+      }
+      return false;
+    },
+    disable: function(name) {
+      for (var i = 0; i < ents.length; i++) {
+        if (ents[i].name() == name) {
+          ents.splice(i, 1);
+          return true;
+        }
+      }
+      return false;
+    }
+  };
+})();
+
+// pages
+const newPageSystem = (function() {
+  var pages = [];
+  var save = [];
+  return {
+    on: function(page, callback) {
+      pages[page] = callback;
+    },
+    to: function(page, data) {
+      var x = [];
+      for (var i = 0; i < document.body.children.length; i++) x.push(document.body.children[i]);
+      save.push(x);
+      document.body.innerHTML = "";
+      pages[page](data);
+    },
+    back: function() {
+      document.body.innerHTML = "";
+      var x = save.pop();
+      for (var i = 0; i < x.length; i++) document.body.appendChild(x[i]);
+    },
+    getSave: function() {
+      return save;
+    }
+  }
+})();
+
+const pageRenderer = (function() {
   var pages;
   var y = function(e, o) {
     if (e == undefined) return [];
@@ -624,7 +697,7 @@ var pageRenderer = (function() {
   };
   return {
     init: async function() {
-      pages = await fetch(parse.extension.path + "pages.json").then((j) => j.json());
+      pages = await fetch(app.root + "pages.json").then((j) => j.json());
     },
     parseObject: function(obj, options) {
       return y([obj], options)[0];
@@ -701,7 +774,7 @@ var pageRenderer = (function() {
 })();
 
 // function for formatting time into "2m" or "2 m" or "2 minutes"
-function formatTime(date, type, forward, otherdate) {
+const formatTime = function(date, type, forward, otherdate) {
   otherdate = otherdate ? otherdate : Date.now();
   var diff = forward ? date.getTime() - otherdate : otherdate - date.getTime();
   var second = 1000;
@@ -727,14 +800,14 @@ function formatTime(date, type, forward, otherdate) {
 }
 
 // searches in array by property, for example get the item in arr = [{t:0},{t:1},{t:2}] that has sub = "t" and equ = 1 (should return {t:1})
-function searchInArray(arr, sub, equ) {
+const searchInArray = function(arr, sub, equ) {
   for (var i = 0; i < arr.length; i++) {
     if (arr[i][sub] == equ) return arr[i];
   }
   return undefined;
 }
 
-function alert(msg) {
+const alert = function(msg) {
   var err = document.createElement("p");
   err.className = "alert";
   err.innerText = msg;
@@ -749,7 +822,7 @@ function alert(msg) {
   }, 5000);
 }
 
-function alertError(msg, link) {
+const alertError = function(msg, link) {
   var err = document.createElement("p");
   err.className = "error";
   err.innerText = msg;
@@ -771,7 +844,7 @@ function alertError(msg, link) {
 }
 
 // totally not stolen from https://stackoverflow.com/a/63474748
-function getVideoCover(file, seekTo = 0.0) {
+const getVideoCover = function(file, seekTo = 0.0) {
   return new Promise((resolve, reject) => {
     var videoPlayer = document.createElement('video');
     videoPlayer.setAttribute("src", URL.createObjectURL(file));
@@ -801,7 +874,7 @@ function getVideoCover(file, seekTo = 0.0) {
   });
 }
 
-function getImageDimensions(file) {
+const getImageDimensions = function(file) {
   return new Promise(rs => {
     var fr = new FileReader();
     fr.onload = () => {
@@ -815,7 +888,7 @@ function getImageDimensions(file) {
   });
 }
 
-function getVideoDimensions(file){
+const getVideoDimensions = function(file){
   return new Promise(rs => {
     var video = document.createElement("video");
     video.onloadedmetadata = () => rs({width: video.videoWidth, height: video.videoHeight});
@@ -835,11 +908,11 @@ function createDrawer(isGuest, selected, padded) {
   drawer.appendTo(document.body);
   if (selected != null) drawer.get(selected).classList.add("selected");
   // create actions
-  if (drawer.get("login")) drawer.get("login").onclick = () => location.href = parse.extension.path + "login.html";
+  if (drawer.get("login")) drawer.get("login").onclick = () => location.href = app.root + "login.html";
   if (config.settings.sb > 1 && config.settings.sc > 0) drawer.get("mode").onclick = () => {
     if (config.rating > 0) localStorage.removeItem("eFurWeb.nsfw");
     else {
-      if (parse.requireAccount()) return;
+      if (app.requireAccount()) return;
       if (config.settings.sc == 1) localStorage.setItem("eFurWeb.nsfw", "1");
       else if (config.settings.sc == 2) localStorage.setItem("eFurWeb.nsfw", "2");
     }
@@ -930,7 +1003,7 @@ async function translatePost(post, postElem) {
   // recreate content
   //   image/gif
   if (post.type == 0 || post.type == 2) {
-    var response = await fetch("https://translate.flexan.cf/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
+    var response = await fetch("https://translate.flxn.ml/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
     if (!response.success) {
       postElem.get("body").querySelector("p").innerText = response.error;
       return;
@@ -946,7 +1019,7 @@ async function translatePost(post, postElem) {
   }
   //   story
   if (post.type == 1) {
-    var response = await fetch("https://translate.flexan.cf/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "") + "<!>" + (storyText.innerText ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
+    var response = await fetch("https://translate.flxn.ml/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "") + "<!>" + (storyText.innerText ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
     if (!response.success) {
       postElem.get("body").querySelector("p").innerText = response.error;
       return;
@@ -962,7 +1035,7 @@ async function translatePost(post, postElem) {
   }
   //   poll
   if (post.type == 3) {
-    var response = await fetch("https://translate.flexan.cf/translate?text=" + encodeURIComponent((post.poll.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
+    var response = await fetch("https://translate.flxn.ml/translate?text=" + encodeURIComponent((post.poll.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
     if (!response.success) {
       postElem.get("body").querySelector("p").innerText = response.error;
       return;
@@ -1016,11 +1089,11 @@ async function translatePost(post, postElem) {
           v.push(+s.voteIndex);
         }
         // vote on poll
-        var r = parse.parse.pollVote(await parse.cloud.voteOnPoll(post.poll.id, v, (e) => alertError(e.message)));
+        var r = app.parse.pollVote(await app.cloud.voteOnPoll(post.poll.id, v, (e) => alertError(e.message)));
         loadPoll(postElem, post, r);
       };
       if (!pollVote) (async () => {
-        var v = parse.parse.pollVote(await parse.cloud.getPollVote(post.poll.id, (e) => alertError(e.message)));
+        var v = app.parse.pollVote(await app.cloud.getPollVote(post.poll.id, (e) => alertError(e.message)));
         if (v != null) loadPoll(postElem, post, v);
       })();
       else submit.parentNode.removeChild(submit);
@@ -1030,7 +1103,7 @@ async function translatePost(post, postElem) {
   }
   //   video
   if (post.type == 4) {
-    var response = await fetch("https://translate.flexan.cf/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
+    var response = await fetch("https://translate.flxn.ml/translate?text=" + encodeURIComponent((post.title ?? "") + "<!>" + (post.artist ?? "") + "<!>" + (post.description ?? "")) + "&tlang=" + config.lang).then((j) => j.json()).catch((e) => {return {success:false,error:e.message}});
     if (!response.success) {
       postElem.get("body").querySelector("p").innerText = response.error;
       return;
@@ -1135,11 +1208,11 @@ function createPostContent(post, postElem, fullFeatures) {
           v.push(+s.voteIndex);
         }
         // vote on poll
-        var r = parse.parse.pollVote(await parse.cloud.voteOnPoll(post.poll.id, v, (e) => alertError(e.message)));
+        var r = app.parse.pollVote(await app.cloud.voteOnPoll(post.poll.id, v, (e) => alertError(e.message)));
         loadPoll(postElem, post, r);
       };
       if (!pollVote) (async () => {
-        var v = parse.parse.pollVote(await parse.cloud.getPollVote(post.poll.id, (e) => alertError(e.message)));
+        var v = app.parse.pollVote(await app.cloud.getPollVote(post.poll.id, (e) => alertError(e.message)));
         if (v != null) loadPoll(postElem, post, v);
       })();
       else submit.parentNode.removeChild(submit);
@@ -1173,7 +1246,7 @@ function createPosts(posts, history, fullFeatures) {
     }
     // create post without content
     var postElem = pageRenderer.compile("feed", "post", {
-      pfp_url: post.user.icon ? post.user.icon.preview : parse.extension.path + "res/default_icon.png",
+      pfp_url: post.user.icon ? post.user.icon.preview : app.root + "res/default_icon.png",
       username: post.user.username,
       categories: cats.join(", "),
       upload_time: formatTime(post.createdAt, 0),
@@ -1190,7 +1263,7 @@ function createPosts(posts, history, fullFeatures) {
         x.pathname = x.pathname.substring(0, x.pathname.lastIndexOf("/") + 1) + "share.html";
         x.search = "";
         x.hash = "";
-        if (parse.extension.allowShare) {
+        if (app.extension.allowShare) {
           await navigator.clipboard.writeText(x.href + "?type=post&id=" + id);
           alert("Copied link to clipboard!");
           return;
@@ -1207,7 +1280,7 @@ function createPosts(posts, history, fullFeatures) {
       })(post, postElem, fullFeatures)}
     ];
     if (post.user.id == Parse.User.current().id) options.push({innerText: "Delete", onclick: ((id, elem) => async () => {
-      await parse.cloud.deletePost(id, (e) => alertError(e.message));
+      await app.cloud.deletePost(id, (e) => alertError(e.message));
       alert("Successfully deleted your post!");
       elem.get("post").parentNode.removeChild(elem.get("post"));
     })(post.id, postElem)});
@@ -1220,11 +1293,11 @@ function createPosts(posts, history, fullFeatures) {
     // favorite functionality
     var fav = postElem.get("isfavorite");
     postElem.get("favorite").onclick = ((count, fav, id) => async () => {
-      if (parse.requireAccount()) return;
+      if (app.requireAccount()) return;
       var a = fav.innerText != "favorite";
       fav.innerText = a ? "favorite" : "favorite_border";
       count.innerText = a ? +count.innerText + 1 : +count.innerText - 1;
-      var c = await parse.cloud.favPost(a, id, (e) => alertError(e.message));
+      var c = await app.cloud.favPost(a, id, (e) => alertError(e.message));
       if (c == undefined) return;
       fav.innerText = c.g ? "favorite" : "favorite_border";
       count.innerText = c.f;
@@ -1235,7 +1308,7 @@ function createPosts(posts, history, fullFeatures) {
     // comment functionality
     postElem.get("comments").onclick = ((id) => async () => goto("post@" + id))(post.id);
     // report functionality
-    postElem.get("report").onclick = ((id) => () => window.open(parse.extension.path + "report.html?type=post&id=" + id, "_blank"))(post.id);
+    postElem.get("report").onclick = ((id) => () => window.open(app.root + "report.html?type=post&id=" + id, "_blank"))(post.id);
     // cache post
     f.push(postElem);
     if (history) {
@@ -1247,14 +1320,14 @@ function createPosts(posts, history, fullFeatures) {
 };
 
 async function createComments(aff, sub, d) {
-  var comments = await parse.cloud.getComments(aff, sub, (e) => alertError(e.message));
-  comments.c = parse.parse.array(comments.c, "comment");
+  var comments = await app.cloud.getComments(aff, sub, (e) => alertError(e.message));
+  comments.c = app.parse.array(comments.c, "comment");
   for (var i = comments.c.length - 1; i >= 0; i--) { // or for original state: for (var i = 0; i < comments.c.length; i++) {
     var comment = comments.c[i];
     // create comment
     var missing = comment.content == null;
     var commentElem = pageRenderer.compile("post", "comment", {
-      pfp_url: comment.user.icon && !missing ? comment.user.icon.preview : parse.extension.path + "res/default_icon.png",
+      pfp_url: comment.user.icon && !missing ? comment.user.icon.preview : app.root + "res/default_icon.png",
       username: missing ? "Deleted comment" : comment.user.username,
       upload_time: formatTime(comment.createdAt, 1),
       content: missing ? "This comment has been deleted." : comment.content,
@@ -1267,7 +1340,7 @@ async function createComments(aff, sub, d) {
     // like functionality
     var like = commentElem.get("like");
     like.onclick = ((like, count, id) => async () => {
-      if (parse.requireAccount()) return;
+      if (app.requireAccount()) return;
       var a = !like.classList.contains("androidIconFill");
       if (a) {
         like.className = "commentLike androidIconFill";
@@ -1276,7 +1349,7 @@ async function createComments(aff, sub, d) {
         like.className = "commentLike androidIcon";
         count.innerText = +count.innerText - 1;
       }
-      var c = await parse.cloud.favComment(a, id, (e) => {
+      var c = await app.cloud.favComment(a, id, (e) => {
         alertError(e.message);
       });
       if (c == undefined) return;
@@ -1300,9 +1373,9 @@ async function createComments(aff, sub, d) {
       {tagName: "button", innerText: "Comment", reference: "comment"}
     ]);
     s.get("comment").onclick = ((s, sub, id) => async () => {
-      if (parse.requireAccount()) return;
+      if (app.requireAccount()) return;
       var err = false;
-      await parse.cloud.createComment(aff, s.get("content").value, sub ? sub : id, sub ? id : undefined, (e) => {
+      await app.cloud.createComment(aff, s.get("content").value, sub ? sub : id, sub ? id : undefined, (e) => {
         err = true;
         alertError(e.message);
       });
@@ -1313,7 +1386,7 @@ async function createComments(aff, sub, d) {
       appendMenu(menu, document.body, true);
     })(menu);
     // report functionality
-    commentElem.get("report").onclick = ((id) => () => window.open(parse.extension.path + "report.html?type=comment&id=" + id, "_blank"))(comment.id);
+    commentElem.get("report").onclick = ((id) => () => window.open(app.root + "report.html?type=comment&id=" + id, "_blank"))(comment.id);
     // add comment
     commentElem.appendTo(d);
   }
@@ -1365,7 +1438,7 @@ async function createNotifications(notifications, parent, history) {
             {
               tagName: "img",
               className: "notificationProfile",
-              src: notifications[i].user ? (notifications[i].user.icon ? notifications[i].user.icon.full : parse.extension.path + "res/default_icon.png") : "res/default_icon.png",
+              src: notifications[i].user ? (notifications[i].user.icon ? notifications[i].user.icon.full : app.root + "res/default_icon.png") : "res/default_icon.png",
               reference: "profile"
             },
             {
@@ -1453,7 +1526,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
   // page: feed
   if (page == "feed") {
     // create drawer
-    createDrawer(parse.isGuest(), aff ?? "feed");
+    createDrawer(app.isGuest(), aff ?? "feed");
     // create page
     var p = pageRenderer.render(page, {});
     p.body.appendTo(document.body);
@@ -1466,8 +1539,8 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       history.cache = {f:[],p:[]};
       history.cacheHtml = {};
       config.posts = history;
-      posts = await parse.cloud["get" + type + "Posts"](config.rating, undefined, (e) => alertError(e.message));
-      posts.p = parse.parse.array(posts.p, "post");
+      posts = await app.cloud["get" + type + "Posts"](config.rating, undefined, (e) => alertError(e.message));
+      posts.p = app.parse.array(posts.p, "post");
     }
     // append posts
     createPosts(posts, fromHistory ? undefined : history).forEach((e) => e.appendTo(p.body.get("container")));
@@ -1477,8 +1550,8 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
         wait = true;
         // get posts
-        var posts = await parse.cloud["get" + type + "Posts"](config.rating, history.scrollTime, (e) => alertError(e.message));
-        posts.p = parse.parse.array(posts.p, "post");
+        var posts = await app.cloud["get" + type + "Posts"](config.rating, history.scrollTime, (e) => alertError(e.message));
+        posts.p = app.parse.array(posts.p, "post");
         // append posts
         createPosts(posts, history).forEach((e) => e.appendTo(p.body.get("container")));
         wait = false;
@@ -1491,8 +1564,8 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     // get post
     var post = config.posts.cacheHtml[aff];
     if (post == undefined) {
-      var posts = await parse.cloud.getSinglePost(aff, config.rating, (e) => alertError(e.message));
-      posts.p = parse.parse.array(posts.p, "post");
+      var posts = await app.cloud.getSinglePost(aff, config.rating, (e) => alertError(e.message));
+      posts.p = app.parse.array(posts.p, "post");
       post = createPosts(posts, undefined, true)[0];
     } else if (post.get("load_more_label")) {
       var l = post.get("load_more_label");
@@ -1500,18 +1573,18 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       post.get("post_content").innerText = await fetch(l.url).then((t) => t.text());
     }
     // create drawer
-    createDrawer(parse.isGuest(), null, fromHash);
+    createDrawer(app.isGuest(), null, fromHash);
     // create info menu
     if (!localStorage.getItem("eFurWeb.disablePostInfo")) {
       (async () => {
         var menu = [{tagName: "p", className: "postInfoHeader", innerText: "Favourited by"}];
-        var favedBy = await parse.cloud.getPostFavedBy(aff, (e) => alertError(e.message));
+        var favedBy = await app.cloud.getPostFavedBy(aff, (e) => alertError(e.message));
         for (var i = 0; i < favedBy.length; i++) {
-          var user = parse.parse.user(favedBy[i].get("u"));
+          var user = app.parse.user(favedBy[i].get("u"));
           menu.push({
             tagName: "img",
             className: "postInfoIcon",
-            src: user.icon ? user.icon.preview : parse.extension.path + "res/default_icon.png",
+            src: user.icon ? user.icon.preview : app.root + "res/default_icon.png",
             onclick: ((id) => () => goto("profile@" + id))(user.id)
           });
         }
@@ -1546,7 +1619,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     ]);
     d.get("comment").onclick = async () => {
       var err = false;
-      await parse.cloud.createComment(aff, d.get("content").value, undefined, undefined, (e) => {
+      await app.cloud.createComment(aff, d.get("content").value, undefined, undefined, (e) => {
         err = true;
         alertError(e.message);
       });
@@ -1573,17 +1646,17 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     // create drawer
     var selected = null;
     if (aff == Parse.User.current().id) selected = "profile";
-    createDrawer(parse.isGuest(), selected, false);
+    createDrawer(app.isGuest(), selected, false);
     // get profile
-    var profile = parse.parse.profile(await parse.cloud.getUserProfile(aff, (e) => alertError(e.message)));
+    var profile = app.parse.profile(await app.cloud.getUserProfile(aff, (e) => alertError(e.message)));
     // recreate drawer
     document.body.innerHTML = "";
-    createDrawer(parse.isGuest(), selected, fromHash);
+    createDrawer(app.isGuest(), selected, fromHash);
     // create page
     var p = pageRenderer.render(page, {
       hash: fromHash,
-      background: profile.background ? profile.background.preview : parse.extension.path + "res/default_background.png",
-      icon: profile.icon ? profile.icon.preview : parse.extension.path + "res/default_icon.png",
+      background: profile.background ? profile.background.preview : app.root + "res/default_background.png",
+      icon: profile.icon ? profile.icon.preview : app.root + "res/default_icon.png",
       username: profile.username,
       following: profile.followingCount ?? 0,
       followers: profile.followerCount ?? 0,
@@ -1597,7 +1670,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       var x = pageRenderer.compile("profile", "about", {});
       x.appendTo(p.body.get("info_page"));
       // get stats
-      var stats = await parse.cloud.getUserProfileAbout(aff, (e) => alertError(e.message));
+      var stats = await app.cloud.getUserProfileAbout(aff, (e) => alertError(e.message));
       if (stats.i) x.get("presentation").innerHTML = DOMPurify.sanitize(marked.parse(stats.i));
       if (stats.s) x.get("stats").innerText = [
         (stats.s.g ?? "0") + " posts created",
@@ -1615,8 +1688,8 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       var x = pageRenderer.compile("profile", "gallery", {});
       x.appendTo(p.body.get("info_page"));
       // get posts
-      var posts = await parse.cloud.getGalleryPosts(aff, config.rating, undefined, (e) => alertError(e.message));
-      posts.p = parse.parse.array(posts.p, "post");
+      var posts = await app.cloud.getGalleryPosts(aff, config.rating, undefined, (e) => alertError(e.message));
+      posts.p = app.parse.array(posts.p, "post");
       var y = (posts) => {
         for (var i = 0; i < posts.p.length; i++) {
           history.scrollTime = +posts.p[i].createdAt;
@@ -1667,8 +1740,8 @@ async function initPage(page, fromHash, fromHistory, userHash) {
         if (wait) return;
         if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
           wait = true;
-          var posts = await parse.cloud.getGalleryPosts(aff, config.rating, history.scrollTime, (e) => alertError(e.message));
-          posts.p = parse.parse.array(posts.p, "post");
+          var posts = await app.cloud.getGalleryPosts(aff, config.rating, history.scrollTime, (e) => alertError(e.message));
+          posts.p = app.parse.array(posts.p, "post");
           y(posts);
           wait = false;
         }
@@ -1680,10 +1753,10 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       var x = pageRenderer.compile("profile", "gallery", {});
       x.appendTo(p.body.get("info_page"));
       // get posts
-      var posts = await parse.cloud.getGalleryFavPosts2(aff, config.rating, undefined, (e) => alertError(e.message));
+      var posts = await app.cloud.getGalleryFavPosts(aff, config.rating, undefined, (e) => alertError(e.message));
       var y = (posts) => {
         for (var i = 0; i < posts.f.length; i++) {
-          var x = parse.parse.post(posts.f[i].p);
+          var x = app.parse.post(posts.f[i].p);
           history.scrollTime = +x.createdAt;
           var d = document.createElement("div");
           d.className = "cell";
@@ -1732,7 +1805,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
         if (wait) return;
         if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
           wait = true;
-          var posts = await parse.cloud.getGalleryFavPosts2(aff, config.rating, history.scrollTime, (e) => alertError(e.message));
+          var posts = await app.cloud.getGalleryFavPosts(aff, config.rating, history.scrollTime, (e) => alertError(e.message));
           y(posts);
           wait = false;
         }
@@ -1744,13 +1817,13 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       var x = pageRenderer.compile("profile", "comments", {});
       x.appendTo(p.body.get("info_page"));
       // get comments
-      var comments = await parse.cloud.getProfileComments(aff, undefined, (e) => alertError(e.message));
+      var comments = await app.cloud.getProfileComments(aff, undefined, (e) => alertError(e.message));
       var y = (comments) => {
         for (var i = 0; i < comments.length; i++) {
-          var x = parse.parse.comment(comments[i]);
+          var x = app.parse.comment(comments[i]);
           history.scrollTime = +x.createdAt;
           var d = pageRenderer.compile("post", "comment", {
-            pfp_url: x.user.icon ? x.user.icon.preview : parse.extension.path + "res/default_icon.png",
+            pfp_url: x.user.icon ? x.user.icon.preview : app.root + "res/default_icon.png",
             username: x.user.username,
             upload_time: formatTime(x.createdAt, 1),
             content: x.content
@@ -1770,7 +1843,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
         if (wait) return;
         if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
           wait = true;
-          var comments = await parse.cloud.getProfileComments(aff, history.scrollTime, (e) => alertError(e.message));
+          var comments = await app.cloud.getProfileComments(aff, history.scrollTime, (e) => alertError(e.message));
           y(comments);
           wait = false;
         }
@@ -1782,10 +1855,10 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       var x = pageRenderer.compile("profile", "follow", {});
       x.appendTo(p.body.get("info_page"));
       // get followers
-      var followers = await parse.cloud.getFollowers(aff, false, undefined, (e) => alertError(e.message));
+      var followers = await app.cloud.getFollowers(aff, false, undefined, (e) => alertError(e.message));
       var y = (followers) => {
         for (var i = 0; i < followers.length; i++) {
-          var x = parse.parse.follow(followers[i]);
+          var x = app.parse.follow(followers[i]);
           history.scrollTime = +x.createdAt;
           var d = document.createElement("div");
           d.className = "item";
@@ -1796,11 +1869,11 @@ async function initPage(page, fromHash, fromHistory, userHash) {
           pageRenderer.parseObjects([{
             tagName: "img",
             className: "background",
-            src: x.follower.background ? x.follower.background.preview : parse.extension.path + "res/default_background.png"
+            src: x.follower.background ? x.follower.background.preview : app.root + "res/default_background.png"
           }, {
             tagName: "img",
             className: "icon",
-            src: x.follower.icon ? x.follower.icon.preview : parse.extension.path + "res/default_icon.png"
+            src: x.follower.icon ? x.follower.icon.preview : app.root + "res/default_icon.png"
           }, {
             tagName: "span",
             className: "username",
@@ -1820,7 +1893,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
         if (wait) return;
         if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
           wait = true;
-          var followers = await parse.cloud.getFollowers(aff, false, history.scrollTime, (e) => alertError(e.message));
+          var followers = await app.cloud.getFollowers(aff, false, history.scrollTime, (e) => alertError(e.message));
           y(followers);
           wait = false;
         }
@@ -1832,10 +1905,10 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       var x = pageRenderer.compile("profile", "follow", {});
       x.appendTo(p.body.get("info_page"));
       // get following
-      var following = await parse.cloud.getFollowers(aff, true, undefined, (e) => alertError(e.message));
+      var following = await app.cloud.getFollowers(aff, true, undefined, (e) => alertError(e.message));
       var y = (following) => {
         for (var i = 0; i < following.length; i++) {
-          var x = parse.parse.follow(following[i]);
+          var x = app.parse.follow(following[i]);
           history.scrollTime = +x.createdAt;
           var d = document.createElement("div");
           d.className = "item";
@@ -1846,11 +1919,11 @@ async function initPage(page, fromHash, fromHistory, userHash) {
           pageRenderer.parseObjects([{
             tagName: "img",
             className: "background",
-            src: x.following.background ? x.following.background.preview : parse.extension.path + "res/default_background.png"
+            src: x.following.background ? x.following.background.preview : app.root + "res/default_background.png"
           }, {
             tagName: "img",
             className: "icon",
-            src: x.following.icon ? x.following.icon.preview : parse.extension.path + "res/default_icon.png"
+            src: x.following.icon ? x.following.icon.preview : app.root + "res/default_icon.png"
           }, {
             tagName: "span",
             className: "username",
@@ -1870,7 +1943,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
         if (wait) return;
         if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
           wait = true;
-          var following = await parse.cloud.getFollowers(aff, true, history.scrollTime, (e) => alertError(e.message));
+          var following = await app.cloud.getFollowers(aff, true, history.scrollTime, (e) => alertError(e.message));
           y(following);
           wait = false;
         }
@@ -1890,14 +1963,14 @@ async function initPage(page, fromHash, fromHistory, userHash) {
   // page: notifications
   if (page == "notifications") {
     // create drawer
-    createDrawer(parse.isGuest(), "notifications");
+    createDrawer(app.isGuest(), "notifications");
     // create page
     var p = pageRenderer.render(page, {});
     p.body.appendTo(document.body);
     // create notifications
     var notifications;
     if (!fromHistory) {
-      notifications = history.cache = parse.parse.array(await parse.cloud.getNotifications(undefined, (e) => alertError(e.message)), "notification");
+      notifications = history.cache = app.parse.array(await app.cloud.getNotifications(undefined, (e) => alertError(e.message)), "notification");
     } else notifications = history.cache;
     createNotifications(notifications, p.body.get("container"));
     history.scrollTime = +notifications[notifications.length - 1].createdAt;
@@ -1907,7 +1980,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       if (wait) return;
       if (document.documentElement.scrollTop >= document.documentElement.scrollHeight - window.innerHeight * 2) {
         wait = true;
-        var notifications = parse.parse.array(await parse.cloud.getNotifications(history.scrollTime, (e) => alertError(e.message)), "notification");
+        var notifications = app.parse.array(await app.cloud.getNotifications(history.scrollTime, (e) => alertError(e.message)), "notification");
         createNotifications(notifications, p.body.get("container"));
         history.scrollTime = +notifications[notifications.length - 1].createdAt;
         wait = false;
@@ -1918,20 +1991,20 @@ async function initPage(page, fromHash, fromHistory, userHash) {
   // page: chat (external)
   if (page == "chat") {
     if (fromHash) {
-      window.open("https://chat.flexan.cf/?token=" + parse.export() + (aff ? decodeURIComponent(aff) : ""), "_blank");
+      window.open("https://chat.flxn.ml/?token=" + app.export() + (aff ? decodeURIComponent(aff) : ""), "_blank");
       back();
       return;
     }
-    location.href = "https://chat.flexan.cf/?token=" + parse.export() + (aff ? decodeURIComponent(aff) : "");
+    location.href = "https://chat.flxn.ml/?token=" + app.export() + (aff ? decodeURIComponent(aff) : "");
     return;
   }
   // page: about
   if (page == "about") {
     // create drawer
-    createDrawer(parse.isGuest(), "about");
+    createDrawer(app.isGuest(), "about");
     // create page
     var p = pageRenderer.render(page, {
-      src: parse.extension.path + "res/paw.png",
+      src: app.root + "res/paw.png",
       translation: config.attributes.translation_link,
       discord: config.attributes.discord_link,
       telegram: config.attributes.telegram_link
@@ -1962,7 +2035,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
         ]
       }, {}));
     }
-    var stats = await parse.cloud.getStats((e) => alertError(e.message));
+    var stats = await app.cloud.getStats((e) => alertError(e.message));
     p.body.get("users").innerText += " " + stats.get("b");
     p.body.get("guests").innerText += " " + stats.get("a");
     p.body.get("posts").innerText += " " + stats.get("c");
@@ -1972,7 +2045,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
   // page: settings
   if (page == "settings") {
     // create drawer
-    createDrawer(parse.isGuest(), "settings");
+    createDrawer(app.isGuest(), "settings");
     // create page
     var p = pageRenderer.render(page, {
       post_width: localStorage.getItem("eFurWeb.postWidth") ? +localStorage.getItem("eFurWeb.postWidth") * 200 + " pixels" : "600 pixels",
@@ -2008,7 +2081,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     };
     p.body.get("logout").onclick = () => {
       Parse.User.logOut();
-      location.href = parse.extension.path + "login.html";
+      location.href = app.root + "login.html";
     };
     p.body.appendTo(document.body);
     return Return();
@@ -2018,7 +2091,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
     if (!fromHash || fromHistory) return goto("feed");
     var createPage = (options) => {
       // create drawer
-      createDrawer(parse.isGuest(), "create", true);
+      createDrawer(app.isGuest(), "create", true);
       // create page
       var p = pageRenderer.render(page, options);
       p.body.appendTo(document.body);
@@ -2060,7 +2133,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       p.body.get("post_create").onclick = async () => {
         p.body.get("post_create").disabled = true;
         var c = defaultclick();
-        await parse.cloud.createPost2(1, undefined, undefined, undefined, undefined, c.title != "" ? c.title : undefined, c.content != "" ? c.content : undefined, c.description != "" ? c.description : undefined, c.artist != "" ? c.artist : undefined, c.source != "" ? c.source : undefined, c.tags, c.categories, c.rating.rating, p.body.get("post_hide").classList.contains("on"), undefined, (e) => alertError(e.message));
+        await app.cloud.createPost(1, undefined, undefined, undefined, undefined, c.title != "" ? c.title : undefined, c.content != "" ? c.content : undefined, c.description != "" ? c.description : undefined, c.artist != "" ? c.artist : undefined, c.source != "" ? c.source : undefined, c.tags, c.categories, c.rating.rating, p.body.get("post_hide").classList.contains("on"), undefined, (e) => alertError(e.message));
         goto("feed");
       };
       return Return();
@@ -2090,16 +2163,16 @@ async function initPage(page, fromHash, fromHistory, userHash) {
           p.body.get("post_content").parentNode.removeChild(p.body.get("post_content"));
           p.body.get("post_create").onclick = async () => {
             p.body.get("post_create").disabled = true;
-            var file = new Parse.File(parse.cloud.version + "_" + Parse.User.current().id + (aff == "image" ? ".jpg" : (aff == "video" ? ".mp4" : ".gif")), input.files[0]);
+            var file = new Parse.File(app.cloud.version + "_" + Parse.User.current().id + (aff == "image" ? ".jpg" : (aff == "video" ? ".mp4" : ".gif")), input.files[0]);
             await file.save().catch((e) => alertError(e.message));
             var thumb;
             if (aff == "video") {
-              thumb = await new Parse.File(parse.cloud.version + "_" + Parse.User.current().id + ".jpg", await getVideoCover(input.files[0]));
+              thumb = await new Parse.File(app.cloud.version + "_" + Parse.User.current().id + ".jpg", await getVideoCover(input.files[0]));
               await thumb.save().catch((e) => alertError(e.message));
             }
             var c = defaultclick();
             var dims = aff == "video" ? await getVideoDimensions(input.files[0]) : await getImageDimensions(input.files[0]);
-            await parse.cloud.createPost2(aff == "gif" ? 2 : (aff == "video" ? 4 : 0), file, thumb, dims.width, dims.height, c.title != "" ? c.title : undefined, c.content != "" ? c.content : undefined, c.description != "" ? c.description : undefined, c.artist != "" ? c.artist : undefined, c.source != "" ? c.source : undefined, c.tags, c.categories, c.rating.rating, p.body.get("post_hide").classList.contains("on"), p.body.get("post_prevent").classList.contains("on"), (e) => alertError(e.message));
+            await app.cloud.createPost(aff == "gif" ? 2 : (aff == "video" ? 4 : 0), file, thumb, dims.width, dims.height, c.title != "" ? c.title : undefined, c.content != "" ? c.content : undefined, c.description != "" ? c.description : undefined, c.artist != "" ? c.artist : undefined, c.source != "" ? c.source : undefined, c.tags, c.categories, c.rating.rating, p.body.get("post_hide").classList.contains("on"), p.body.get("post_prevent").classList.contains("on"), (e) => alertError(e.message));
             goto("feed");
           };
           return;
@@ -2127,7 +2200,7 @@ async function initPage(page, fromHash, fromHistory, userHash) {
   // page: createchooser
   if (page == "createchooser") {
     // create drawer
-    createDrawer(parse.isGuest(), "create");
+    createDrawer(app.isGuest(), "create");
     // create page
     var p = pageRenderer.render(page, {});
     p.body.appendTo(document.body);
@@ -2146,14 +2219,14 @@ async function initPage(page, fromHash, fromHistory, userHash) {
       ], {});
       s.get("create").onclick = async function() {
         this.disabled = true;
-        await parse.cloud.createComic(s.get("content").value, (e) => alertError(e.message));
+        await app.cloud.createComic(s.get("content").value, (e) => alertError(e.message));
         goto("createchooser", true);
       };
       appendMenu(createMenu(s.children, true), document.body, true);
     };
 
     (async function() {
-      var comics = parse.parse.array(await parse.cloud.getComics((e) => alertError(e.message)), "comic");
+      var comics = app.parse.array(await app.cloud.getComics((e) => alertError(e.message)), "comic");
       if (config.history[config.history.length - 1].page == page) {
         for (var i = 0; i < comics.length; i++) {
           var comic = pageRenderer.compile(page, "comic", {
@@ -2190,7 +2263,7 @@ var pages;
 (async function() {
   // initialize app
   console.log("[eFur] Initializing...");
-  parse.init();
+  app.init();
   await pageRenderer.init();
   console.log("[eFur] Getting config...");
   config.attributes = (await Parse.Config.get()).attributes;
@@ -2201,12 +2274,12 @@ var pages;
 
   // check if user is logged in
   if (Parse.User.current() == null) {
-    location.href = parse.extension.path + "login.html" + (location.hash != "" ? "?redirect=" + location.hash.substring(1) : "");
+    location.href = app.root + "login.html" + (location.hash != "" ? "?redirect=" + location.hash.substring(1) : "");
     return;
   }
 
   // get user settngs
-  config.settings = await parse.cloud.getUserSettings((e) => alertError(e.message));
+  config.settings = await app.cloud.getUserSettings((e) => alertError(e.message));
   
   // make the hash partially control the page
   window.onhashchange = () => {
@@ -2214,7 +2287,7 @@ var pages;
   };
   initPage(location.hash != "" ? location.hash.substring(1) : "feed", undefined, undefined, true);
 
-  var news = await fetch("https://translate.flexan.cf/news").then((j) => j.json()).catch((e) => alertError(e.message));
+  var news = await fetch("https://translate.flxn.ml/news").then((j) => j.json()).catch((e) => alertError(e.message));
   if (localStorage.getItem("eFurWeb.news") != news[0]) {
     localStorage.setItem("eFurWeb.news", news[0]);
     news[1].push({
@@ -2234,17 +2307,17 @@ var pages;
         alertError("Could not get notifications; cancelling live notifications (reload to retry)");
         clearInterval(x);
       };
-      var n = await parse.cloud.getNotificationCount(e);
-      await parse.cloud.resetNotificationCount(e);
+      var n = await app.cloud.getNotificationCount(e);
+      await app.cloud.resetNotificationCount(e);
       var t = undefined;
       while (n > 0) {
-        var a = await parse.cloud.getNotifications(t, e);
+        var a = await app.cloud.getNotifications(t, e);
         for (var i = 0; i < a.length && i < n; i++) {
           var r = false;
           ((c) => {
-            var y = parse.parse.notification(c);
+            var y = app.parse.notification(c);
             if (y.type == 0) { // favorited
-              var u = new Notification(y.user.username, {body: "Liked your post", icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
+              var u = new Notification(y.user.username, {body: "Liked your post", icon: y.user.icon ? y.user.icon.preview : app.root + "res/default_icon.png"});
               u.onclick = () => {
                 goto("post@" + y.post.id);
                 window.focus();
@@ -2254,7 +2327,7 @@ var pages;
               return;
             }
             if (y.type == 1) { // followed/unfollowed
-              var u = new Notification(y.user.username, {body: y.followed ? "Followed you" : "Unfollowed you", icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
+              var u = new Notification(y.user.username, {body: y.followed ? "Followed you" : "Unfollowed you", icon: y.user.icon ? y.user.icon.preview : app.root + "res/default_icon.png"});
               u.onclick = () => {
                 goto("profile@" + y.user.id);
                 window.focus();
@@ -2264,7 +2337,7 @@ var pages;
               return;
             }
             if (y.type == 2) { // commented
-              var u = new Notification(y.user.username + " commented", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
+              var u = new Notification(y.user.username + " commented", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : app.root + "res/default_icon.png"});
               u.onclick = () => {
                 goto("post@" + y.post.id); // change with 'comment' page when implemented
                 window.focus();
@@ -2274,7 +2347,7 @@ var pages;
               return;
             }
             if (y.type == 3) { // replied
-              var u = new Notification(y.user.username + " replied", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
+              var u = new Notification(y.user.username + " replied", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : app.root + "res/default_icon.png"});
               u.onclick = () => {
                 goto("post@" + y.post.id); // change with 'comment' page when implemented
                 window.focus();
@@ -2284,7 +2357,7 @@ var pages;
               return;
             }
             if (y.type == 4) { // mentioned in comment
-              var u = new Notification(y.user.username + " mentioned you in a comment", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
+              var u = new Notification(y.user.username + " mentioned you in a comment", {body: y.comment.content, icon: y.user.icon ? y.user.icon.preview : app.root + "res/default_icon.png"});
               u.onclick = () => {
                 goto("post@" + y.post.id); // change with 'comment' page when implemented
                 window.focus();
@@ -2294,7 +2367,7 @@ var pages;
               return;
             }
             if (y.type == 5) { // mentioned in post
-              var u = new Notification(y.user.username, {body: "Mentioned you in a post", icon: y.user.icon ? y.user.icon.preview : parse.extension.path + "res/default_icon.png"});
+              var u = new Notification(y.user.username, {body: "Mentioned you in a post", icon: y.user.icon ? y.user.icon.preview : app.root + "res/default_icon.png"});
               u.onclick = () => {
                 goto("post@" + y.post.id);
                 window.focus();
