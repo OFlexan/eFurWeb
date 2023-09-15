@@ -1,3 +1,5 @@
+This is only here for archival purposes. eFurWeb has been discontinued.
+
 # ToDo
 - ~~Add "Tap to view full" in pages `new.template.storyBody`~~
 - ~~Add back arrow button when viewing comments (make sure it's only when you come from the "New" page) and add ~ after it to use cache~~
